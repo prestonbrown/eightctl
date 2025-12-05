@@ -15,12 +15,15 @@ func (c *Client) TempModes() *TempModes { return &TempModes{c: c} }
 func (t *TempModes) NapActivate(ctx context.Context) error {
 	return t.simplePost(ctx, "/temperature/nap-mode/activate")
 }
+
 func (t *TempModes) NapDeactivate(ctx context.Context) error {
 	return t.simplePost(ctx, "/temperature/nap-mode/deactivate")
 }
+
 func (t *TempModes) NapExtend(ctx context.Context) error {
 	return t.simplePost(ctx, "/temperature/nap-mode/extend")
 }
+
 func (t *TempModes) NapStatus(ctx context.Context, out any) error {
 	return t.simpleGet(ctx, "/temperature/nap-mode/status", out)
 }
@@ -29,9 +32,11 @@ func (t *TempModes) NapStatus(ctx context.Context, out any) error {
 func (t *TempModes) HotFlashActivate(ctx context.Context) error {
 	return t.simplePost(ctx, "/temperature/hot-flash-mode/activate")
 }
+
 func (t *TempModes) HotFlashDeactivate(ctx context.Context) error {
 	return t.simplePost(ctx, "/temperature/hot-flash-mode/deactivate")
 }
+
 func (t *TempModes) HotFlashStatus(ctx context.Context, out any) error {
 	return t.simpleGet(ctx, "/temperature/hot-flash-mode", out)
 }

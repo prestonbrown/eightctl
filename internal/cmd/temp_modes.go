@@ -15,14 +15,17 @@ var tempModeCmd = &cobra.Command{
 	Short: "Temperature modes (nap, hot-flash, temp events)",
 }
 
-var tempNapCmd = &cobra.Command{Use: "nap", Short: "Nap mode controls"}
-var tempNapOnCmd = &cobra.Command{Use: "on", RunE: func(cmd *cobra.Command, args []string) error {
-	if err := requireAuthFields(); err != nil {
-		return err
-	}
-	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
-	return cl.TempModes().NapActivate(context.Background())
-}}
+var (
+	tempNapCmd   = &cobra.Command{Use: "nap", Short: "Nap mode controls"}
+	tempNapOnCmd = &cobra.Command{Use: "on", RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireAuthFields(); err != nil {
+			return err
+		}
+		cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
+		return cl.TempModes().NapActivate(context.Background())
+	}}
+)
+
 var tempNapOffCmd = &cobra.Command{Use: "off", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err
@@ -30,6 +33,7 @@ var tempNapOffCmd = &cobra.Command{Use: "off", RunE: func(cmd *cobra.Command, ar
 	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 	return cl.TempModes().NapDeactivate(context.Background())
 }}
+
 var tempNapExtendCmd = &cobra.Command{Use: "extend", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err
@@ -37,6 +41,7 @@ var tempNapExtendCmd = &cobra.Command{Use: "extend", RunE: func(cmd *cobra.Comma
 	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 	return cl.TempModes().NapExtend(context.Background())
 }}
+
 var tempNapStatusCmd = &cobra.Command{Use: "status", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err
@@ -54,14 +59,17 @@ var tempNapStatusCmd = &cobra.Command{Use: "status", RunE: func(cmd *cobra.Comma
 	return output.Print(output.Format(viper.GetString("output")), headers, rows)
 }}
 
-var tempHotCmd = &cobra.Command{Use: "hotflash", Short: "Hot-flash mode controls"}
-var tempHotOnCmd = &cobra.Command{Use: "on", RunE: func(cmd *cobra.Command, args []string) error {
-	if err := requireAuthFields(); err != nil {
-		return err
-	}
-	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
-	return cl.TempModes().HotFlashActivate(context.Background())
-}}
+var (
+	tempHotCmd   = &cobra.Command{Use: "hotflash", Short: "Hot-flash mode controls"}
+	tempHotOnCmd = &cobra.Command{Use: "on", RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireAuthFields(); err != nil {
+			return err
+		}
+		cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
+		return cl.TempModes().HotFlashActivate(context.Background())
+	}}
+)
+
 var tempHotOffCmd = &cobra.Command{Use: "off", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err
@@ -69,6 +77,7 @@ var tempHotOffCmd = &cobra.Command{Use: "off", RunE: func(cmd *cobra.Command, ar
 	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 	return cl.TempModes().HotFlashDeactivate(context.Background())
 }}
+
 var tempHotStatusCmd = &cobra.Command{Use: "status", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err

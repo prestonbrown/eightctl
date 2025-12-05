@@ -12,9 +12,11 @@ import (
 
 var autopilotCmd = &cobra.Command{Use: "autopilot", Short: "Autopilot settings"}
 
-var autopilotDetailsCmd = simpleAutopilot("details", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().Details(ctx) })
-var autopilotHistoryCmd = simpleAutopilot("history", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().History(ctx) })
-var autopilotRecapCmd = simpleAutopilot("recap", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().Recap(ctx) })
+var (
+	autopilotDetailsCmd = simpleAutopilot("details", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().Details(ctx) })
+	autopilotHistoryCmd = simpleAutopilot("history", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().History(ctx) })
+	autopilotRecapCmd   = simpleAutopilot("recap", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().Recap(ctx) })
+)
 
 var autopilotLevelCmd = &cobra.Command{Use: "level-suggestions", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
