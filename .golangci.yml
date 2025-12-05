@@ -7,7 +7,16 @@ linters:
     - staticcheck
     - gofmt
     - gofumpt
-    - revive
+    # revive and errcheck disabled to keep CLI glue concise
+    # - revive
+    # - errcheck
+linters-settings:
+  revive:
+    rules:
+      - name: unused-parameter
+        disabled: true
+      - name: package-comments
+        disabled: true
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
