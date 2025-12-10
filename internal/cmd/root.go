@@ -75,6 +75,7 @@ func init() {
 	rootCmd.AddCommand(householdCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(whoamiCmd)
+	rootCmd.AddCommand(logoutCmd)
 }
 
 func initConfig() {
