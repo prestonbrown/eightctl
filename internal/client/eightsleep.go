@@ -11,6 +11,9 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/charmbracelet/log"
+	"github.com/steipete/eightctl/internal/tokencache"
 )
 
 const (
@@ -67,6 +70,8 @@ func (c *Client) Authenticate(ctx context.Context) error {
 	if err := c.authTokenEndpoint(ctx); err == nil {
 		return nil
 	}
+	// OAuth failed - clear any stale cached token before trying legacy
+	tokencache.Clear()
 	return c.authLegacyLogin(ctx)
 }
 
@@ -155,6 +160,9 @@ func (c *Client) authTokenEndpoint(ctx context.Context) error {
 	if c.UserID == "" {
 		c.UserID = res.UserID
 	}
+	if err := tokencache.Save(c.token, c.tokenExp, c.UserID); err != nil {
+		log.Debug("failed to cache token", "error", err)
+	}
 	return nil
 }
 
@@ -207,14 +215,27 @@ func (c *Client) authLegacyLogin(ctx context.Context) error {
 	if c.UserID == "" {
 		c.UserID = res.Session.UserID
 	}
+	if err := tokencache.Save(c.token, c.tokenExp, c.UserID); err != nil {
+		log.Debug("failed to cache token", "error", err)
+	}
 	return nil
 }
 
 func (c *Client) ensureToken(ctx context.Context) error {
-	if c.token == "" || time.Now().After(c.tokenExp) {
-		return c.Authenticate(ctx)
+	if c.token != "" && time.Now().Before(c.tokenExp) {
+		return nil
 	}
-	return nil
+	// Trust cached tokens without server validation. If token is invalid,
+	// the server will return 401 and we'll clear cache + re-authenticate.
+	if cached, err := tokencache.Load(); err == nil {
+		c.token = cached.Token
+		c.tokenExp = cached.ExpiresAt
+		if cached.UserID != "" && c.UserID == "" {
+			c.UserID = cached.UserID
+		}
+		return nil
+	}
+	return c.Authenticate(ctx)
 }
 
 // requireUser ensures UserID is populated.
@@ -263,6 +284,7 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	}
 	if resp.StatusCode == http.StatusUnauthorized {
 		c.token = ""
+		tokencache.Clear()
 		if err := c.ensureToken(ctx); err != nil {
 			return err
 		}
