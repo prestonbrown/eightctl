@@ -43,17 +43,18 @@ func SetOpenKeyringForTest(fn func() (keyring.Keyring, error)) (restore func()) 
 
 func defaultOpenKeyring() (keyring.Keyring, error) {
 	home, _ := os.UserHomeDir()
-	return keyring.Open(keyring.Config{
+	cfg := keyring.Config{
 		ServiceName: serviceName,
 		AllowedBackends: []keyring.BackendType{
 			keyring.KeychainBackend,
 			keyring.SecretServiceBackend,
 			keyring.WinCredBackend,
-			keyring.FileBackend,
+			keyring.FileBackend, // Fallback for unsigned dev builds
 		},
 		FileDir:          filepath.Join(home, ".config", "eightctl", "keyring"),
 		FilePasswordFunc: filePassword,
-	})
+	}
+	return keyring.Open(cfg)
 }
 
 func filePassword(_ string) (string, error) {

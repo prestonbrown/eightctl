@@ -117,11 +117,11 @@ func (c *Client) EnsureDeviceID(ctx context.Context) (string, error) {
 
 func (c *Client) authTokenEndpoint(ctx context.Context) error {
 	payload := map[string]string{
+		"client_id":     c.ClientID,
+		"client_secret": c.ClientSecret,
 		"grant_type":    "password",
 		"username":      c.Email,
 		"password":      c.Password,
-		"client_id":     "sleep-client",
-		"client_secret": "",
 	}
 	body, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, authURL, bytes.NewReader(body))
@@ -169,6 +169,10 @@ func (c *Client) authTokenEndpoint(ctx context.Context) error {
 }
 
 func (c *Client) authLegacyLogin(ctx context.Context) error {
+	return c.authLegacyLoginWithRetry(ctx, 0)
+}
+
+func (c *Client) authLegacyLoginWithRetry(ctx context.Context, attempt int) error {
 	payload := map[string]string{
 		"email":    c.Email,
 		"password": c.Password,
@@ -182,12 +186,23 @@ func (c *Client) authLegacyLogin(ctx context.Context) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("User-Agent", "okhttp/4.9.3")
-	req.Header.Set("Accept-Encoding", "gzip")
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		b, _ := io.ReadAll(resp.Body)
+		log.Debug("legacy login rate limited", "status", resp.Status, "body", string(b), "attempt", attempt)
+		if attempt < 3 {
+			// Exponential backoff: 2s, 4s, 8s
+			delay := time.Duration(2<<attempt) * time.Second
+			log.Debug("retrying legacy login after delay", "delay", delay)
+			time.Sleep(delay)
+			return c.authLegacyLoginWithRetry(ctx, attempt+1)
+		}
+		return fmt.Errorf("login rate limited after %d attempts: %s", attempt+1, string(b))
+	}
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		log.Debug("legacy login failed", "status", resp.Status, "headers", resp.Header, "body", string(b))
@@ -281,7 +296,7 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("User-Agent", "okhttp/4.9.3")
-	req.Header.Set("Accept-Encoding", "gzip")
+	// Note: Don't set Accept-Encoding manually; Go handles gzip automatically
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
