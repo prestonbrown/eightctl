@@ -10,7 +10,7 @@ import (
 	"github.com/steipete/eightctl/internal/output"
 )
 
-var autopilotCmd = &cobra.Command{Use: "autopilot", Short: "Autopilot settings"}
+var autopilotCmd = &cobra.Command{Use: "autopilot", Short: "Autopilot settings", Hidden: true} // All subcommand endpoints broken
 
 var (
 	autopilotDetailsCmd = simpleAutopilot("details", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().Details(ctx) })

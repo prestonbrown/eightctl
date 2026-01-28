@@ -11,7 +11,7 @@ import (
 	"github.com/steipete/eightctl/internal/output"
 )
 
-var audioCmd = &cobra.Command{Use: "audio", Short: "Audio tracks and player"}
+var audioCmd = &cobra.Command{Use: "audio", Short: "Audio tracks and player", Hidden: true} // All subcommand endpoints broken
 
 var audioTracksCmd = &cobra.Command{Use: "tracks", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {

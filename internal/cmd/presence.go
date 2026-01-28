@@ -11,8 +11,9 @@ import (
 )
 
 var presenceCmd = &cobra.Command{
-	Use:   "presence",
-	Short: "Check if user is in bed",
+	Use:    "presence",
+	Short:  "Check if user is in bed",
+	Hidden: true, // Endpoint broken - returns "Cannot GET"
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := requireAuthFields(); err != nil {
 			return err

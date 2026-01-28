@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -99,5 +100,74 @@ func Test429Retry(t *testing.T) {
 	}
 	if elapsed := time.Since(start); elapsed < 2*time.Second {
 		t.Fatalf("expected backoff, got %v", elapsed)
+	}
+}
+
+func TestMetricsTrendsPassesTimezone(t *testing.T) {
+	var capturedTZ string
+	var capturedFrom string
+	var capturedTo string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/trends", func(w http.ResponseWriter, r *http.Request) {
+		capturedTZ = r.URL.Query().Get("tz")
+		capturedFrom = r.URL.Query().Get("from")
+		capturedTo = r.URL.Query().Get("to")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"days":[]}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var out any
+	err := c.Metrics().Trends(context.Background(), "2025-01-01", "2025-01-28", "America/New_York", &out)
+	if err != nil {
+		t.Fatalf("Trends error: %v", err)
+	}
+
+	if capturedTZ != "America/New_York" {
+		t.Errorf("expected tz=America/New_York, got tz=%s", capturedTZ)
+	}
+	if capturedFrom != "2025-01-01" {
+		t.Errorf("expected from=2025-01-01, got from=%s", capturedFrom)
+	}
+	if capturedTo != "2025-01-28" {
+		t.Errorf("expected to=2025-01-28, got to=%s", capturedTo)
+	}
+}
+
+func TestMetricsTrendsEmptyTimezone(t *testing.T) {
+	var capturedQuery string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/trends", func(w http.ResponseWriter, r *http.Request) {
+		capturedQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"days":[]}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var out any
+	err := c.Metrics().Trends(context.Background(), "2025-01-01", "2025-01-28", "", &out)
+	if err != nil {
+		t.Fatalf("Trends error: %v", err)
+	}
+
+	// When timezone is empty, tz param should not be in the query
+	if strings.Contains(capturedQuery, "tz=") {
+		t.Errorf("expected no tz param when empty, got query: %s", capturedQuery)
 	}
 }

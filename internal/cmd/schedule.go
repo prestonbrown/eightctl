@@ -14,8 +14,9 @@ import (
 )
 
 var scheduleCmd = &cobra.Command{
-	Use:   "schedule",
-	Short: "Manage device temperature schedules (cloud)",
+	Use:    "schedule",
+	Short:  "Manage device temperature schedules (cloud)",
+	Hidden: true, // All subcommand endpoints broken - returns "Cannot GET"
 }
 
 var scheduleNextCmd = &cobra.Command{

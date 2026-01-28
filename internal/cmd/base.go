@@ -10,7 +10,7 @@ import (
 	"github.com/steipete/eightctl/internal/output"
 )
 
-var baseCmd = &cobra.Command{Use: "base", Short: "Adjustable base controls"}
+var baseCmd = &cobra.Command{Use: "base", Short: "Adjustable base controls", Hidden: true} // All subcommand endpoints broken
 
 var baseInfoCmd = &cobra.Command{Use: "info", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {

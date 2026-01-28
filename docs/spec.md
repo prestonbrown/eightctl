@@ -81,10 +81,15 @@ Audio/temperature data helpers:
 - Formatting via `gofmt`; prefer `gofumpt`/`staticcheck` later.
 - Live checks: `eightctl status`, `metrics summary`, `tempmode nap status` with test creds to validate auth + userId resolution.
 
+## API Documentation
+
+See [api-reference.md](./api-reference.md) for comprehensive endpoint documentation compiled from pyEight and other reverse-engineering efforts.
+
 ## Prior Work (references)
 - Go CLI `clim8`: https://github.com/blacktop/clim8
 - MCP server (Node/TS): https://github.com/elizabethtrykin/8sleep-mcp
 - Python library `pyEight`: https://github.com/mezz64/pyEight
+- Updated pyEight fork (OAuth2, alarms): https://github.com/lukas-clarke/pyEight
 - Home Assistant integrations: https://github.com/lukas-clarke/eight_sleep and https://github.com/grantnedwards/eight-sleep
 - Homebridge plugin: https://github.com/nfarina/homebridge-eightsleep
 - Additional notes on API stability: https://www.reddit.com/r/EightSleep/comments/15ybfrv/eight_sleep_removed_smart_home_capabilities/
