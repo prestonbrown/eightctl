@@ -55,6 +55,7 @@ See [endpoint-audit.md](./endpoint-audit.md) for detailed status.
 | [api-reference.md](./api-reference.md) | Eight Sleep API endpoints |
 | [endpoint-audit.md](./endpoint-audit.md) | Broken endpoint tracking |
 | [development.md](./development.md) | Contributing and reverse engineering |
+| [testing.md](./testing.md) | Testing infrastructure and patterns |
 
 ## Prior Work
 

@@ -92,7 +92,7 @@ func (c *Client) MyEndpoint(ctx context.Context, userID string) (*Response, erro
 
 - Use `httptest.NewServer` for API mocks
 - Token cache tests use `SetOpenKeyringForTest()` for isolation
-- See `internal/client/eightsleep_test.go` for patterns
+- See [testing.md](./testing.md) for comprehensive patterns and examples
 
 ```go
 func TestMyEndpoint(t *testing.T) {
