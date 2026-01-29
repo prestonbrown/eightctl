@@ -68,8 +68,89 @@ test_cmd() {
     fi
 }
 
+# ==========================================
+# READ-ONLY TESTS (Safe to run freely)
+# ==========================================
+
+test_readonly() {
+    echo "=== READ-ONLY Endpoint Tests ==="
+    echo ""
+
+    # Alarm
+    echo "-- Alarm --"
+    test_cmd "alarm list" "eightctl alarm list --output json" || true
+
+    # Audio
+    echo "-- Audio --"
+    test_cmd "audio tracks" "eightctl audio tracks --output json" || true
+    test_cmd "audio categories" "eightctl audio categories --output json" || true
+    test_cmd "audio state" "eightctl audio state --output json" || true
+    test_cmd "audio favorites" "eightctl audio favorites --output json" || true
+
+    # Autopilot
+    echo "-- Autopilot --"
+    test_cmd "autopilot details" "eightctl autopilot details --output json" || true
+    test_cmd "autopilot history" "eightctl autopilot history --output json" || true
+    test_cmd "autopilot recap" "eightctl autopilot recap --output json" || true
+
+    # Base
+    echo "-- Base --"
+    test_cmd "base info" "eightctl base info --output json" || true
+    test_cmd "base presets" "eightctl base presets --output json" || true
+
+    # Temp Modes
+    echo "-- Temp Modes --"
+    test_cmd "tempmode nap status" "eightctl tempmode nap status --output json" || true
+    test_cmd "tempmode hotflash status" "eightctl tempmode hotflash status --output json" || true
+    test_cmd "tempmode events" "eightctl tempmode events --output json" || true
+
+    # Household
+    echo "-- Household --"
+    test_cmd "household summary" "eightctl household summary --output json" || true
+    test_cmd "household schedule" "eightctl household schedule --output json" || true
+    test_cmd "household current-set" "eightctl household current-set --output json" || true
+    test_cmd "household invitations" "eightctl household invitations --output json" || true
+    test_cmd "household devices" "eightctl household devices --output json" || true
+    test_cmd "household users" "eightctl household users --output json" || true
+    test_cmd "household guests" "eightctl household guests --output json" || true
+
+    # Metrics (hidden subcommands)
+    echo "-- Metrics --"
+    test_cmd "metrics intervals" "eightctl metrics intervals --output json" || true
+    test_cmd "metrics summary" "eightctl metrics summary --output json" || true
+    test_cmd "metrics aggregate" "eightctl metrics aggregate --output json" || true
+    test_cmd "metrics insights" "eightctl metrics insights --output json" || true
+
+    # Device (hidden subcommands)
+    echo "-- Device --"
+    test_cmd "device owner" "eightctl device owner --output json" || true
+    test_cmd "device warranty" "eightctl device warranty --output json" || true
+    test_cmd "device priming-tasks" "eightctl device priming-tasks --output json" || true
+    test_cmd "device priming-schedule" "eightctl device priming-schedule --output json" || true
+
+    # Travel
+    echo "-- Travel --"
+    test_cmd "travel trips" "eightctl travel trips --output json" || true
+    test_cmd "travel airport-search JFK" "eightctl travel airport-search JFK --output json" || true
+
+    # Standalone hidden commands
+    echo "-- Other --"
+    test_cmd "feats" "eightctl feats --output json" || true
+    test_cmd "tracks" "eightctl tracks --output json" || true
+    test_cmd "schedule list" "eightctl schedule list --output json" || true
+
+    echo ""
+}
+
 echo "Endpoint Verification Script"
 echo "============================="
 echo ""
 
-preflight
+# Main execution
+main() {
+    preflight
+    test_readonly
+    echo "=== Read-only tests complete ==="
+}
+
+main "$@"
