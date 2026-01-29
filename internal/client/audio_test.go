@@ -369,3 +369,194 @@ func TestAudioActions_RemoveFavorite(t *testing.T) {
 		t.Errorf("unexpected path: %s", capturedPath)
 	}
 }
+
+func TestAudioActions_Player(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/audio/player", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"trackId":"t1","state":"playing"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var res map[string]any
+	err := c.Audio().Player(context.Background(), &res)
+	if err != nil {
+		t.Fatalf("Player error: %v", err)
+	}
+	if res["trackId"] != "t1" {
+		t.Errorf("expected trackId=t1, got %v", res["trackId"])
+	}
+}
+
+func TestAudioActions_DevicePlayer(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/me", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"user":{"userId":"uid-123","currentDevice":{"id":"dev-456"}}}`))
+	})
+	mux.HandleFunc("/devices/dev-456/audio/player", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"trackId":"t1","state":"playing"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var res map[string]any
+	err := c.Audio().DevicePlayer(context.Background(), &res)
+	if err != nil {
+		t.Fatalf("DevicePlayer error: %v", err)
+	}
+	if res["trackId"] != "t1" {
+		t.Errorf("expected trackId=t1, got %v", res["trackId"])
+	}
+}
+
+func TestAudioActions_StopPlayer(t *testing.T) {
+	var capturedPath string
+	var capturedMethod string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/me", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"user":{"userId":"uid-123","currentDevice":{"id":"dev-456"}}}`))
+	})
+	mux.HandleFunc("/devices/dev-456/audio/player", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.Audio().StopPlayer(context.Background())
+	if err != nil {
+		t.Fatalf("StopPlayer error: %v", err)
+	}
+	if capturedMethod != http.MethodDelete {
+		t.Errorf("expected DELETE, got %s", capturedMethod)
+	}
+	if capturedPath != "/devices/dev-456/audio/player" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+}
+
+func TestAudioActions_UpdatePlayer(t *testing.T) {
+	var capturedBody map[string]any
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/audio/player", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.Audio().UpdatePlayer(context.Background(), map[string]any{"trackId": "t1", "volume": 50})
+	if err != nil {
+		t.Fatalf("UpdatePlayer error: %v", err)
+	}
+	if capturedBody["trackId"] != "t1" {
+		t.Errorf("expected trackId=t1, got %v", capturedBody["trackId"])
+	}
+	if capturedBody["volume"] != float64(50) {
+		t.Errorf("expected volume=50, got %v", capturedBody["volume"])
+	}
+}
+
+func TestAudioActions_SetPlaybackState(t *testing.T) {
+	var capturedBody map[string]any
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/audio/player/state", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.Audio().SetPlaybackState(context.Background(), "Playing")
+	if err != nil {
+		t.Fatalf("SetPlaybackState error: %v", err)
+	}
+	if capturedBody["state"] != "Playing" {
+		t.Errorf("expected state=Playing, got %v", capturedBody["state"])
+	}
+}
+
+func TestAudioActions_PreviewTrack(t *testing.T) {
+	var capturedBody map[string]any
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/audio/player/preview-track", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.Audio().PreviewTrack(context.Background(), map[string]any{"trackId": "preview-123"})
+	if err != nil {
+		t.Fatalf("PreviewTrack error: %v", err)
+	}
+	if capturedBody["trackId"] != "preview-123" {
+		t.Errorf("expected trackId=preview-123, got %v", capturedBody["trackId"])
+	}
+}

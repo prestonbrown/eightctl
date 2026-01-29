@@ -86,3 +86,75 @@ func (d *DeviceActions) PrimingSchedule(ctx context.Context) (any, error) {
 	err = d.c.do(ctx, http.MethodGet, path, nil, nil, &res)
 	return res, err
 }
+
+func (d *DeviceActions) Update(ctx context.Context, body map[string]any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s", id)
+	return d.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (d *DeviceActions) SetOwner(ctx context.Context, body map[string]any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/owner", id)
+	return d.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (d *DeviceActions) SetPeripherals(ctx context.Context, body map[string]any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/peripherals", id)
+	return d.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (d *DeviceActions) AddPeripheral(ctx context.Context, body map[string]any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/peripherals", id)
+	return d.c.do(ctx, http.MethodPatch, path, nil, body, nil)
+}
+
+func (d *DeviceActions) GetBLEKey(ctx context.Context, out any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/security/key", id)
+	return d.c.do(ctx, http.MethodPost, path, nil, nil, out)
+}
+
+func (d *DeviceActions) UpdatePrimingSchedule(ctx context.Context, body map[string]any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/priming/schedule", id)
+	return d.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (d *DeviceActions) CreatePrimingTask(ctx context.Context, body map[string]any) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/priming/tasks", id)
+	return d.c.do(ctx, http.MethodPost, path, nil, body, nil)
+}
+
+func (d *DeviceActions) CancelPrimingTask(ctx context.Context) error {
+	id, err := d.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/priming/tasks", id)
+	return d.c.do(ctx, http.MethodDelete, path, nil, nil, nil)
+}

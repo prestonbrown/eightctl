@@ -108,3 +108,95 @@ func TestMetricsActions_Insights(t *testing.T) {
 		t.Fatalf("Insights error: %v", err)
 	}
 }
+
+func TestMetricsActions_UpdateSession(t *testing.T) {
+	var capturedPath, capturedMethod string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/intervals/session-abc", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	body := map[string]any{"note": "test note"}
+	err := c.Metrics().UpdateSession(context.Background(), "session-abc", body)
+	if err != nil {
+		t.Fatalf("UpdateSession error: %v", err)
+	}
+	if capturedPath != "/users/uid-123/intervals/session-abc" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPut {
+		t.Errorf("expected PUT, got %s", capturedMethod)
+	}
+}
+
+func TestMetricsActions_DeleteSession(t *testing.T) {
+	var capturedPath, capturedMethod string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/intervals/session-abc", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.Metrics().DeleteSession(context.Background(), "session-abc")
+	if err != nil {
+		t.Fatalf("DeleteSession error: %v", err)
+	}
+	if capturedPath != "/users/uid-123/intervals/session-abc" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodDelete {
+		t.Errorf("expected DELETE, got %s", capturedMethod)
+	}
+}
+
+func TestMetricsActions_SendFeedback(t *testing.T) {
+	var capturedPath, capturedMethod string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/feedback", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	body := map[string]any{"rating": 5, "comment": "Great!"}
+	err := c.Metrics().SendFeedback(context.Background(), body)
+	if err != nil {
+		t.Fatalf("SendFeedback error: %v", err)
+	}
+	if capturedPath != "/users/uid-123/feedback" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPost {
+		t.Errorf("expected POST, got %s", capturedMethod)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -314,6 +315,62 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 			return err
 		}
 		return c.do(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("api %s %s: %s", method, path, string(b))
+	}
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	return nil
+}
+
+// doV3 is like do but uses v3 API instead of v1.
+func (c *Client) doV3(ctx context.Context, method, path string, query url.Values, body any, out any) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	var rdr io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		rdr = bytes.NewReader(b)
+	}
+	// Replace v1 with v3 in the base URL
+	baseV3 := strings.Replace(c.BaseURL, "/v1", "/v3", 1)
+	u := baseV3 + path
+	if len(query) > 0 {
+		u += "?" + query.Encode()
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u, rdr)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("User-Agent", "okhttp/4.9.3")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(2 * time.Second)
+		return c.doV3(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.token = ""
+		_ = tokencache.Clear(c.Identity())
+		if err := c.ensureToken(ctx); err != nil {
+			return err
+		}
+		return c.doV3(ctx, method, path, query, body, out)
 	}
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)

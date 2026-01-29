@@ -65,3 +65,13 @@ func (c *Client) DeleteAlarm(ctx context.Context, alarmID string) error {
 	path := fmt.Sprintf("/users/%s/alarms/%s", c.UserID, alarmID)
 	return c.do(ctx, http.MethodDelete, path, nil, nil, nil)
 }
+
+// ListAlarmsV2 retrieves alarms using the v2 API endpoint.
+// The out parameter should be a pointer to the desired response type.
+func (c *Client) ListAlarmsV2(ctx context.Context, out any) error {
+	if err := c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/../v2/users/%s/alarms", c.UserID)
+	return c.do(ctx, http.MethodGet, path, nil, nil, out)
+}

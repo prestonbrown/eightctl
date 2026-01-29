@@ -125,3 +125,54 @@ func (a *AudioActions) RemoveFavorite(ctx context.Context, trackID string) error
 	path := fmt.Sprintf("/users/%s/audio/tracks/favorites/%s", a.c.UserID, trackID)
 	return a.c.do(ctx, http.MethodDelete, path, nil, nil, nil)
 }
+
+func (a *AudioActions) Player(ctx context.Context, out any) error {
+	if err := a.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/audio/player", a.c.UserID)
+	return a.c.do(ctx, http.MethodGet, path, nil, nil, out)
+}
+
+func (a *AudioActions) DevicePlayer(ctx context.Context, out any) error {
+	deviceID, err := a.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/audio/player", deviceID)
+	return a.c.do(ctx, http.MethodGet, path, nil, nil, out)
+}
+
+func (a *AudioActions) StopPlayer(ctx context.Context) error {
+	deviceID, err := a.c.EnsureDeviceID(ctx)
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/devices/%s/audio/player", deviceID)
+	return a.c.do(ctx, http.MethodDelete, path, nil, nil, nil)
+}
+
+func (a *AudioActions) UpdatePlayer(ctx context.Context, body map[string]any) error {
+	if err := a.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/audio/player", a.c.UserID)
+	return a.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (a *AudioActions) SetPlaybackState(ctx context.Context, state string) error {
+	if err := a.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/audio/player/state", a.c.UserID)
+	body := map[string]any{"state": state}
+	return a.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (a *AudioActions) PreviewTrack(ctx context.Context, body map[string]any) error {
+	if err := a.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/audio/player/preview-track", a.c.UserID)
+	return a.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}

@@ -61,3 +61,27 @@ func (m *MetricsActions) Insights(ctx context.Context, out any) error {
 	path := fmt.Sprintf("/users/%s/insights", m.c.UserID)
 	return m.c.do(ctx, http.MethodGet, path, nil, nil, out)
 }
+
+func (m *MetricsActions) UpdateSession(ctx context.Context, sessionID string, body map[string]any) error {
+	if err := m.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/intervals/%s", m.c.UserID, sessionID)
+	return m.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (m *MetricsActions) DeleteSession(ctx context.Context, sessionID string) error {
+	if err := m.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/intervals/%s", m.c.UserID, sessionID)
+	return m.c.do(ctx, http.MethodDelete, path, nil, nil, nil)
+}
+
+func (m *MetricsActions) SendFeedback(ctx context.Context, body map[string]any) error {
+	if err := m.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/feedback", m.c.UserID)
+	return m.c.do(ctx, http.MethodPost, path, nil, body, nil)
+}

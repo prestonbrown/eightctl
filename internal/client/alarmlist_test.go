@@ -148,3 +148,43 @@ func TestDeleteAlarm(t *testing.T) {
 		t.Errorf("unexpected path: %s", capturedPath)
 	}
 }
+
+func TestListAlarmsV2(t *testing.T) {
+	var capturedPath string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v2/users/uid-123/alarms", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"alarms":[{"id":"v2-alarm","enabled":true}]}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	// Simulate BaseURL ending with /v1 so /../v2 resolves correctly
+	c.BaseURL = srv.URL + "/v1"
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var res struct {
+		Alarms []Alarm `json:"alarms"`
+	}
+	err := c.ListAlarmsV2(context.Background(), &res)
+	if err != nil {
+		t.Fatalf("ListAlarmsV2 error: %v", err)
+	}
+	if capturedPath != "/v2/users/uid-123/alarms" {
+		t.Errorf("expected path /v2/users/uid-123/alarms, got %s", capturedPath)
+	}
+	if len(res.Alarms) != 1 {
+		t.Errorf("expected 1 alarm, got %d", len(res.Alarms))
+	}
+	if res.Alarms[0].ID != "v2-alarm" {
+		t.Errorf("expected alarm id v2-alarm, got %s", res.Alarms[0].ID)
+	}
+}

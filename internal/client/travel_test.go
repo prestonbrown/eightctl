@@ -277,3 +277,117 @@ func TestTravelActions_FlightStatus(t *testing.T) {
 		t.Errorf("expected flightNumber=AA123, got %s", capturedQuery)
 	}
 }
+
+func TestTravelActions_GetTrip(t *testing.T) {
+	var capturedPath string
+	var capturedMethod string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/travel/trips/trip-1", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"id":"trip-1","destination":"NYC"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var res map[string]any
+	err := c.Travel().GetTrip(context.Background(), "trip-1", &res)
+	if err != nil {
+		t.Fatalf("GetTrip error: %v", err)
+	}
+	if capturedMethod != http.MethodGet {
+		t.Errorf("expected GET, got %s", capturedMethod)
+	}
+	if capturedPath != "/users/uid-123/travel/trips/trip-1" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if res["id"] != "trip-1" {
+		t.Errorf("expected id=trip-1, got %v", res["id"])
+	}
+}
+
+func TestTravelActions_UpdateTrip(t *testing.T) {
+	var capturedPath string
+	var capturedMethod string
+	var capturedBody map[string]any
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/travel/trips/trip-1", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	body := map[string]any{"destination": "LAX"}
+	err := c.Travel().UpdateTrip(context.Background(), "trip-1", body)
+	if err != nil {
+		t.Fatalf("UpdateTrip error: %v", err)
+	}
+	if capturedMethod != http.MethodPut {
+		t.Errorf("expected PUT, got %s", capturedMethod)
+	}
+	if capturedPath != "/users/uid-123/travel/trips/trip-1" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedBody["destination"] != "LAX" {
+		t.Errorf("expected destination=LAX, got %v", capturedBody["destination"])
+	}
+}
+
+func TestTravelActions_UpdatePlanTasks(t *testing.T) {
+	var capturedPath string
+	var capturedMethod string
+	var capturedBody map[string]any
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/travel/plans/plan-1/tasks", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	body := map[string]any{"completed": true}
+	err := c.Travel().UpdatePlanTasks(context.Background(), "plan-1", body)
+	if err != nil {
+		t.Fatalf("UpdatePlanTasks error: %v", err)
+	}
+	if capturedMethod != http.MethodPatch {
+		t.Errorf("expected PATCH, got %s", capturedMethod)
+	}
+	if capturedPath != "/users/uid-123/travel/plans/plan-1/tasks" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedBody["completed"] != true {
+		t.Errorf("expected completed=true, got %v", capturedBody["completed"])
+	}
+}

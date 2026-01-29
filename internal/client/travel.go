@@ -86,3 +86,27 @@ func (t *TravelActions) FlightStatus(ctx context.Context, flight string) (any, e
 	err := t.c.do(ctx, http.MethodGet, "/travel/flight-status", q, nil, &res)
 	return res, err
 }
+
+func (t *TravelActions) GetTrip(ctx context.Context, tripID string, out any) error {
+	if err := t.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/travel/trips/%s", t.c.UserID, tripID)
+	return t.c.do(ctx, http.MethodGet, path, nil, nil, out)
+}
+
+func (t *TravelActions) UpdateTrip(ctx context.Context, tripID string, body map[string]any) error {
+	if err := t.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/travel/trips/%s", t.c.UserID, tripID)
+	return t.c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+func (t *TravelActions) UpdatePlanTasks(ctx context.Context, planID string, body map[string]any) error {
+	if err := t.c.requireUser(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/travel/plans/%s/tasks", t.c.UserID, planID)
+	return t.c.do(ctx, http.MethodPatch, path, nil, body, nil)
+}

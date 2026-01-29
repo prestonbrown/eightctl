@@ -115,6 +115,85 @@ func TestTempModes_NapStatus(t *testing.T) {
 	}
 }
 
+func TestTempModes_NapSettings(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/temperature/nap-mode", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"duration":30}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var out any
+	err := c.TempModes().NapSettings(context.Background(), &out)
+	if err != nil {
+		t.Fatalf("NapSettings error: %v", err)
+	}
+}
+
+func TestTempModes_NapAlarmSettings(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/temporary-mode/nap-mode", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"alarmEnabled":true}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var out any
+	err := c.TempModes().NapAlarmSettings(context.Background(), &out)
+	if err != nil {
+		t.Fatalf("NapAlarmSettings error: %v", err)
+	}
+}
+
+func TestTempModes_UpdateNapAlarmSettings(t *testing.T) {
+	var capturedPath string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/temporary-mode/nap-mode", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.TempModes().UpdateNapAlarmSettings(context.Background(), map[string]any{"alarmEnabled": true})
+	if err != nil {
+		t.Fatalf("UpdateNapAlarmSettings error: %v", err)
+	}
+	if capturedPath != "/users/uid-123/temporary-mode/nap-mode" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+}
+
 func TestTempModes_HotFlashActivate(t *testing.T) {
 	var capturedPath string
 
@@ -170,6 +249,9 @@ func TestTempModes_HotFlashDeactivate(t *testing.T) {
 func TestTempModes_HotFlashStatus(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users/uid-123/temperature/hot-flash-mode", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"active":false}`))
 	})
@@ -186,6 +268,64 @@ func TestTempModes_HotFlashStatus(t *testing.T) {
 	err := c.TempModes().HotFlashStatus(context.Background(), &out)
 	if err != nil {
 		t.Fatalf("HotFlashStatus error: %v", err)
+	}
+}
+
+func TestTempModes_UpdateHotFlashSettings(t *testing.T) {
+	var capturedPath string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/temperature/hot-flash-mode", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.TempModes().UpdateHotFlashSettings(context.Background(), map[string]any{"enabled": true})
+	if err != nil {
+		t.Fatalf("UpdateHotFlashSettings error: %v", err)
+	}
+	if capturedPath != "/users/uid-123/temperature/hot-flash-mode" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+}
+
+func TestTempModes_DeleteHotFlashSettings(t *testing.T) {
+	var capturedPath string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/temperature/hot-flash-mode", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.TempModes().DeleteHotFlashSettings(context.Background())
+	if err != nil {
+		t.Fatalf("DeleteHotFlashSettings error: %v", err)
+	}
+	if capturedPath != "/users/uid-123/temperature/hot-flash-mode" {
+		t.Errorf("unexpected path: %s", capturedPath)
 	}
 }
 

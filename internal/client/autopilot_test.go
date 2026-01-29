@@ -81,13 +81,41 @@ func TestAutopilotActions_Recap(t *testing.T) {
 	}
 }
 
+func TestAutopilotActions_GetLevelSuggestions(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/uid-123/level-suggestions-mode", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"enabled":true}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "uid-123", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	var res map[string]any
+	err := c.Autopilot().GetLevelSuggestions(context.Background(), &res)
+	if err != nil {
+		t.Fatalf("GetLevelSuggestions error: %v", err)
+	}
+	if res["enabled"] != true {
+		t.Errorf("expected enabled=true, got %v", res["enabled"])
+	}
+}
+
 func TestAutopilotActions_SetLevelSuggestions(t *testing.T) {
 	var capturedBody map[string]any
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users/uid-123/level-suggestions-mode", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("expected POST, got %s", r.Method)
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
 			t.Fatal(err)
