@@ -86,6 +86,7 @@ These commands have been verified to work with the current Eight Sleep API.
 | `eightctl sleep day --date YYYY-MM-DD` | Get sleep data for a specific day |
 | `eightctl sleep range --from DATE --to DATE` | Get sleep data for a date range |
 | `eightctl metrics trends --from DATE --to DATE` | Get sleep trends |
+| `eightctl metrics intervals` | Get sleep session intervals |
 
 ### Daemon
 
@@ -130,7 +131,6 @@ These commands exist but are hidden because their API endpoints are currently br
 
 ### Metrics (partial)
 - `metrics summary`, `metrics aggregate`, `metrics insights`
-- `metrics intervals`
 
 ### Travel
 - `travel trips`, `travel create-trip`, `travel delete-trip`

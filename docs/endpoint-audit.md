@@ -1,13 +1,15 @@
 # Eight Sleep API Endpoint Audit
 
-This document records the results of endpoint testing performed against the Eight Sleep API (January 2025).
+This document records the results of endpoint testing performed against the Eight Sleep API.
+
+Last verified: 2026-01-29
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Working | 6 |
-| Broken | 28+ |
+| Working | 7 |
+| Broken | 27+ |
 
 Most broken endpoints return "Cannot GET" errors, indicating the paths don't exist in Eight Sleep's current API. The API has likely changed since these endpoints were reverse-engineered.
 
@@ -24,6 +26,7 @@ These endpoints have been verified to work:
 | `device online` | GET | `/devices/{deviceId}/online` | Returns online status |
 | `sleep day` | GET | `/users/{userId}/trends` | Requires `tz` query param |
 | `metrics trends` | GET | `/users/{userId}/trends` | Requires `tz` query param |
+| `metrics intervals` | GET | `/users/{userId}/intervals` | Returns sleep session data |
 
 ## Broken Endpoints
 
@@ -126,7 +129,6 @@ These endpoints return "Cannot GET" or similar errors:
 | `metrics summary` | `/users/{userId}/metrics/summary` | Cannot GET |
 | `metrics aggregate` | `/users/{userId}/metrics/aggregate` | Cannot GET |
 | `metrics insights` | `/users/{userId}/insights` | Cannot GET |
-| `metrics intervals` | `/users/{userId}/intervals/{id}` | Cannot GET |
 
 ### Travel
 
