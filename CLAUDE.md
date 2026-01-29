@@ -74,3 +74,7 @@ eightctl --verbose <command>
 - Config values via `viper.GetString()`, `viper.GetBool()`
 - Token caching is transparent: first auth caches token, subsequent calls reuse it
 - Daemon uses simple minute-tick loop with execute-once-per-day semantics
+
+## Git Worktrees
+
+Use `.worktrees/` directory for isolated workspaces. This directory is gitignored.
