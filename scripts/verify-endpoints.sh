@@ -250,6 +250,84 @@ test_reversible_writes() {
     echo ""
 }
 
+# ==========================================
+# REPORT GENERATION
+# ==========================================
+
+generate_report() {
+    echo "Generating report: $REPORT_FILE"
+
+    cat > "$REPORT_FILE" << EOF
+# Endpoint Verification Report
+
+**Date:** $(date +"%Y-%m-%d %H:%M:%S")
+**Total Tested:** $((${#PASSED[@]} + ${#FAILED[@]}))
+**Passed:** ${#PASSED[@]}
+**Failed:** ${#FAILED[@]}
+**Skipped:** ${#SKIPPED[@]}
+
+---
+
+## ✓ PASSED (${#PASSED[@]})
+
+| Command | Notes |
+|---------|-------|
+EOF
+
+    for entry in "${PASSED[@]}"; do
+        IFS='|' read -r cmd notes <<< "$entry"
+        echo "| \`$cmd\` | ${notes:0:60} |" >> "$REPORT_FILE"
+    done
+
+    cat >> "$REPORT_FILE" << EOF
+
+## ✗ FAILED (${#FAILED[@]})
+
+| Command | Error |
+|---------|-------|
+EOF
+
+    for entry in "${FAILED[@]}"; do
+        IFS='|' read -r cmd error <<< "$entry"
+        # Escape pipe characters in error
+        error="${error//|/\\|}"
+        echo "| \`$cmd\` | ${error:0:60} |" >> "$REPORT_FILE"
+    done
+
+    cat >> "$REPORT_FILE" << EOF
+
+## ⊘ SKIPPED (${#SKIPPED[@]})
+
+| Command | Reason |
+|---------|--------|
+EOF
+
+    for entry in "${SKIPPED[@]}"; do
+        IFS='|' read -r cmd reason <<< "$entry"
+        echo "| \`$cmd\` | $reason |" >> "$REPORT_FILE"
+    done
+
+    cat >> "$REPORT_FILE" << EOF
+
+---
+
+## Next Steps
+
+For PASSED commands:
+1. Remove \`Hidden: true\` from command definition
+2. Update command help text if needed
+3. Update docs/
+
+For FAILED commands:
+1. Analyze error (404? Changed URL? Auth issue?)
+2. Check API reference for endpoint changes
+3. Fix client method or document as permanently broken
+EOF
+
+    echo ""
+    echo "Report saved to: $REPORT_FILE"
+}
+
 echo "Endpoint Verification Script"
 echo "============================="
 echo ""
@@ -268,7 +346,11 @@ main() {
         log_skip "reversible writes" "User skipped"
     fi
 
+    echo ""
     echo "=== All tests complete ==="
+    echo ""
+
+    generate_report
 }
 
 main "$@"
