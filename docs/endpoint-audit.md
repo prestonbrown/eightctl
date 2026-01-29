@@ -169,12 +169,12 @@ For finding correct endpoints:
    - https://github.com/lukas-clarke/eight_sleep
    - May have newer endpoint discoveries
 
-3. **APK Decompilation** - See [apk-decompilation.md](./apk-decompilation.md)
+3. **APK Decompilation** - See [development.md](./development.md)
    - Extract actual endpoints from Android app code
 
 ## Recommendations
 
 1. Commands for broken endpoints have been hidden (not removed) using Cobra's `Hidden: true` field
-2. APK decompilation should be performed to discover current API endpoints
-3. Compare with pyEight's endpoint implementations for correct paths
-4. Consider v2 API endpoints - Eight Sleep may have migrated many features
+2. **[api-reference.md](./api-reference.md) now contains correct endpoints** from APK v7.41.66
+3. Re-implement hidden commands using the updated endpoint paths
+4. Test each endpoint before unhiding the command

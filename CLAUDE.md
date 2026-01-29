@@ -46,9 +46,10 @@ eightctl --verbose <command>
 
 - Base URL: `https://client-api.8slp.net/v1`
 - Auth URL: `https://auth-api.8slp.net/v1/tokens`
-- Default OAuth credentials are built-in (from Android APK)
+- Default OAuth credentials are built-in (from Android APK v7.41.66)
 - HTTP/2 disabled (workaround for Eight Sleep frontend)
 - 20-second timeout, auto-retry on 429
+- See `docs/api-reference.md` for complete endpoint documentation
 
 ### Adding a New Command
 
