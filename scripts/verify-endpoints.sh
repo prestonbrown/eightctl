@@ -334,16 +334,25 @@ echo ""
 
 # Main execution
 main() {
+    local readonly_only=false
+    if [[ "${1:-}" == "--readonly-only" ]]; then
+        readonly_only=true
+    fi
+
     preflight
     test_readonly
 
-    echo ""
-    read -p "Continue to reversible write tests? (y/N) " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        test_reversible_writes
+    if [[ "$readonly_only" == "false" ]]; then
+        echo ""
+        read -p "Continue to reversible write tests? (y/N) " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            test_reversible_writes
+        else
+            log_skip "reversible writes" "User skipped"
+        fi
     else
-        log_skip "reversible writes" "User skipped"
+        log_skip "reversible writes" "Skipped (--readonly-only)"
     fi
 
     echo ""
