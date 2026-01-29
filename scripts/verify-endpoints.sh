@@ -142,6 +142,114 @@ test_readonly() {
     echo ""
 }
 
+# ==========================================
+# REVERSIBLE WRITE TESTS (Require confirmation)
+# ==========================================
+
+test_reversible_writes() {
+    echo "=== REVERSIBLE Write Tests ==="
+    echo ""
+    echo "These tests will:"
+    echo "  - Create and delete test alarms"
+    echo "  - Dismiss all alarms (user confirmed OK)"
+    echo "  - Play/pause audio"
+    echo "  - Toggle nap/hotflash modes"
+    echo "  - Create and delete test travel trip"
+    echo ""
+
+    read -p "Proceed with write tests? (y/N) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_skip "reversible writes" "User declined"
+        return
+    fi
+
+    # Alarm create/delete pair
+    echo "-- Alarm Create/Delete --"
+    local alarm_id
+    alarm_id=$(eightctl alarm create --time "23:59" --days "mon" --output json 2>/dev/null | jq -r '.id // empty')
+    if [[ -n "$alarm_id" ]]; then
+        log_pass "alarm create" "Created alarm $alarm_id"
+        if eightctl alarm delete "$alarm_id" 2>/dev/null; then
+            log_pass "alarm delete" "Deleted alarm $alarm_id"
+        else
+            log_fail "alarm delete" "Failed to delete $alarm_id"
+        fi
+    else
+        log_fail "alarm create" "Could not create alarm"
+    fi
+
+    # Alarm dismiss-all (user said OK)
+    echo "-- Alarm Dismiss All --"
+    test_cmd "alarm dismiss-all" "eightctl alarm dismiss-all" || true
+
+    # Audio play/pause
+    echo "-- Audio Play/Pause --"
+    # Get first track ID
+    local track_id
+    track_id=$(eightctl audio tracks --output json 2>/dev/null | jq -r '.[0].id // empty')
+    if [[ -n "$track_id" ]]; then
+        if eightctl audio play "$track_id" 2>/dev/null; then
+            log_pass "audio play" "Started track $track_id"
+            sleep 2
+            if eightctl audio pause 2>/dev/null; then
+                log_pass "audio pause" "Paused playback"
+            else
+                log_fail "audio pause" "Failed to pause"
+            fi
+        else
+            log_fail "audio play" "Failed to play track"
+        fi
+    else
+        log_skip "audio play/pause" "No tracks available"
+    fi
+
+    # Nap mode on/off
+    echo "-- Nap Mode Toggle --"
+    if eightctl tempmode nap on 2>/dev/null; then
+        log_pass "tempmode nap on" "Activated nap mode"
+        sleep 2
+        if eightctl tempmode nap off 2>/dev/null; then
+            log_pass "tempmode nap off" "Deactivated nap mode"
+        else
+            log_fail "tempmode nap off" "Failed to deactivate"
+        fi
+    else
+        log_fail "tempmode nap on" "Failed to activate"
+    fi
+
+    # Hot flash mode on/off
+    echo "-- Hot Flash Mode Toggle --"
+    if eightctl tempmode hotflash on 2>/dev/null; then
+        log_pass "tempmode hotflash on" "Activated hot flash mode"
+        sleep 2
+        if eightctl tempmode hotflash off 2>/dev/null; then
+            log_pass "tempmode hotflash off" "Deactivated hot flash mode"
+        else
+            log_fail "tempmode hotflash off" "Failed to deactivate"
+        fi
+    else
+        log_fail "tempmode hotflash on" "Failed to activate"
+    fi
+
+    # Travel trip create/delete
+    echo "-- Travel Trip Create/Delete --"
+    local trip_id
+    trip_id=$(eightctl travel create-trip --name "Test Trip" --output json 2>/dev/null | jq -r '.id // empty')
+    if [[ -n "$trip_id" ]]; then
+        log_pass "travel create-trip" "Created trip $trip_id"
+        if eightctl travel delete-trip "$trip_id" 2>/dev/null; then
+            log_pass "travel delete-trip" "Deleted trip $trip_id"
+        else
+            log_fail "travel delete-trip" "Failed to delete $trip_id"
+        fi
+    else
+        log_fail "travel create-trip" "Could not create trip"
+    fi
+
+    echo ""
+}
+
 echo "Endpoint Verification Script"
 echo "============================="
 echo ""
@@ -150,7 +258,17 @@ echo ""
 main() {
     preflight
     test_readonly
-    echo "=== Read-only tests complete ==="
+
+    echo ""
+    read -p "Continue to reversible write tests? (y/N) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        test_reversible_writes
+    else
+        log_skip "reversible writes" "User skipped"
+    fi
+
+    echo "=== All tests complete ==="
 }
 
 main "$@"
