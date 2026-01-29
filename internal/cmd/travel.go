@@ -11,7 +11,7 @@ import (
 	"github.com/steipete/eightctl/internal/output"
 )
 
-var travelCmd = &cobra.Command{Use: "travel", Short: "Travel / jetlag endpoints"} // Hidden: true, // TESTING - All subcommand endpoints broken
+var travelCmd = &cobra.Command{Use: "travel", Short: "Travel / jetlag endpoints", Hidden: true} // Verified broken 2026-01-29: Cannot GET
 
 var travelTripsCmd = &cobra.Command{Use: "trips", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {

@@ -27,7 +27,7 @@ func deviceSimple(name string, fn func(ctx context.Context) (any, error)) *cobra
 
 func deviceSimpleHidden(name string, fn func(ctx context.Context) (any, error)) *cobra.Command {
 	cmd := deviceSimple(name, fn)
-	// cmd.Hidden = true // TESTING - Endpoint broken - returns "Cannot GET"
+	cmd.Hidden = true // Verified broken 2026-01-29: Cannot GET
 	return cmd
 }
 

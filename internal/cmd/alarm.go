@@ -13,9 +13,9 @@ import (
 )
 
 var alarmCmd = &cobra.Command{
-	Use:   "alarm",
-	Short: "Manage alarms",
-	// Hidden: true, // TESTING - All subcommand endpoints broken - returns "Cannot GET"
+	Use:    "alarm",
+	Short:  "Manage alarms",
+	Hidden: true, // Verified broken 2026-01-29: Cannot GET
 }
 
 var alarmListCmd = &cobra.Command{
