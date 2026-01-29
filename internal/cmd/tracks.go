@@ -11,9 +11,9 @@ import (
 )
 
 var tracksCmd = &cobra.Command{
-	Use:    "tracks",
-	Short:  "List audio tracks",
-	Hidden: true, // Endpoint broken - returns "Cannot GET"
+	Use:   "tracks",
+	Short: "List audio tracks",
+	// Hidden: true, // TESTING - Endpoint broken - returns "Cannot GET"
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := requireAuthFields(); err != nil {
 			return err

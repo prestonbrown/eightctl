@@ -27,7 +27,7 @@ var metricsTrendsCmd = &cobra.Command{Use: "trends", RunE: func(cmd *cobra.Comma
 	return output.Print(output.Format(viper.GetString("output")), []string{"trends"}, []map[string]any{{"trends": out}})
 }}
 
-var metricsIntervalsCmd = &cobra.Command{Use: "intervals", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Endpoint broken
+var metricsIntervalsCmd = &cobra.Command{Use: "intervals", RunE: func(cmd *cobra.Command, args []string) error { // Hidden: true, // TESTING - Endpoint broken
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ var metricsIntervalsCmd = &cobra.Command{Use: "intervals", Hidden: true, RunE: f
 	return output.Print(output.Format(viper.GetString("output")), []string{"interval"}, []map[string]any{{"interval": out}})
 }}
 
-var metricsSummaryCmd = &cobra.Command{Use: "summary", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Endpoint broken
+var metricsSummaryCmd = &cobra.Command{Use: "summary", RunE: func(cmd *cobra.Command, args []string) error { // Hidden: true, // TESTING - Endpoint broken
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ var metricsSummaryCmd = &cobra.Command{Use: "summary", Hidden: true, RunE: func(
 	return output.Print(output.Format(viper.GetString("output")), []string{"summary"}, []map[string]any{{"summary": out}})
 }}
 
-var metricsAggregateCmd = &cobra.Command{Use: "aggregate", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Endpoint broken
+var metricsAggregateCmd = &cobra.Command{Use: "aggregate", RunE: func(cmd *cobra.Command, args []string) error { // Hidden: true, // TESTING - Endpoint broken
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ var metricsAggregateCmd = &cobra.Command{Use: "aggregate", Hidden: true, RunE: f
 	return output.Print(output.Format(viper.GetString("output")), []string{"aggregate"}, []map[string]any{{"aggregate": out}})
 }}
 
-var metricsInsightsCmd = &cobra.Command{Use: "insights", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Endpoint broken
+var metricsInsightsCmd = &cobra.Command{Use: "insights", RunE: func(cmd *cobra.Command, args []string) error { // Hidden: true, // TESTING - Endpoint broken
 	if err := requireAuthFields(); err != nil {
 		return err
 	}

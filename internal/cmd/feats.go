@@ -11,9 +11,9 @@ import (
 )
 
 var featsCmd = &cobra.Command{
-	Use:    "feats",
-	Short:  "List release features",
-	Hidden: true, // Endpoint broken - returns "Cannot GET"
+	Use:   "feats",
+	Short: "List release features",
+	// Hidden: true, // TESTING - Endpoint broken - returns "Cannot GET"
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := requireAuthFields(); err != nil {
 			return err

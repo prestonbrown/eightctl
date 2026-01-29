@@ -11,9 +11,9 @@ import (
 )
 
 var tempModeCmd = &cobra.Command{
-	Use:    "tempmode",
-	Short:  "Temperature modes (nap, hot-flash, temp events)",
-	Hidden: true, // All subcommand endpoints broken - returns "Cannot GET"
+	Use:   "tempmode",
+	Short: "Temperature modes (nap, hot-flash, temp events)",
+	// Hidden: true, // TESTING - All subcommand endpoints broken - returns "Cannot GET"
 }
 
 var (
