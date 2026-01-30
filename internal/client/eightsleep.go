@@ -19,6 +19,7 @@ import (
 
 const (
 	defaultBaseURL = "https://client-api.8slp.net/v1"
+	appAPIBaseURL  = "https://app-api.8slp.net/v1"
 	authURL        = "https://auth-api.8slp.net/v1/tokens"
 	// Extracted from the official Eight Sleep Android app v7.39.17 (public client creds)
 	defaultClientID     = "0894c7f33bb94800a03f1f4df13a4f38"
@@ -34,10 +35,11 @@ type Client struct {
 	ClientSecret string
 	DeviceID     string
 
-	HTTP     *http.Client
-	BaseURL  string
-	token    string
-	tokenExp time.Time
+	HTTP          *http.Client
+	BaseURL       string
+	AppAPIBaseURL string // For testing; defaults to appAPIBaseURL constant
+	token         string
+	tokenExp      time.Time
 }
 
 // New creates a Client.
@@ -382,6 +384,65 @@ func (c *Client) doV3(ctx context.Context, method, path string, query url.Values
 	return nil
 }
 
+// doAppAPI is like do but uses app-api.8slp.net instead of client-api.8slp.net.
+// Many endpoints (alarms, base, bedtime, away mode) have migrated to this API.
+func (c *Client) doAppAPI(ctx context.Context, method, path string, query url.Values, body any, out any) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	var rdr io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		rdr = bytes.NewReader(b)
+	}
+	baseURL := c.AppAPIBaseURL
+	if baseURL == "" {
+		baseURL = appAPIBaseURL
+	}
+	u := baseURL + path
+	if len(query) > 0 {
+		u += "?" + query.Encode()
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u, rdr)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("User-Agent", "okhttp/4.9.3")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(2 * time.Second)
+		return c.doAppAPI(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.token = ""
+		_ = tokencache.Clear(c.Identity())
+		if err := c.ensureToken(ctx); err != nil {
+			return err
+		}
+		return c.doAppAPI(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("api %s %s: %s", method, path, string(b))
+	}
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	return nil
+}
+
 // TurnOn powers device on.
 func (c *Client) TurnOn(ctx context.Context) error {
 	return c.setPower(ctx, true)
@@ -420,6 +481,29 @@ func (c *Client) SetTemperature(ctx context.Context, level int) error {
 	path := fmt.Sprintf("/users/%s/temperature", c.UserID)
 	body := map[string]int{"currentLevel": level}
 	return c.do(ctx, http.MethodPut, path, nil, body, nil)
+}
+
+// SetTemperatureWithDuration sets target heating/cooling level for a specified duration.
+// Uses app-api with the timeBased field as discovered in pyEight.
+func (c *Client) SetTemperatureWithDuration(ctx context.Context, level int, durationMinutes int) error {
+	if err := c.requireUser(ctx); err != nil {
+		return err
+	}
+	if level < -100 || level > 100 {
+		return fmt.Errorf("level must be between -100 and 100")
+	}
+	if durationMinutes < 1 {
+		return fmt.Errorf("duration must be at least 1 minute")
+	}
+	path := fmt.Sprintf("/users/%s/temperature", c.UserID)
+	body := map[string]any{
+		"currentLevel": level,
+		"timeBased": map[string]any{
+			"level":           level,
+			"durationSeconds": durationMinutes * 60,
+		},
+	}
+	return c.doAppAPI(ctx, http.MethodPut, path, nil, body, nil)
 }
 
 // TempStatus represents current temperature state payload.

@@ -18,24 +18,27 @@ func (a *AlarmActions) Snooze(ctx context.Context, alarmID string) error {
 	if err := a.c.requireUser(ctx); err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/users/%s/alarms/%s/snooze", a.c.UserID, alarmID)
-	return a.c.do(ctx, http.MethodPost, path, nil, map[string]string{}, nil)
+	path := fmt.Sprintf("/users/%s/routines", a.c.UserID)
+	body := map[string]any{"action": "snooze", "alarmId": alarmID}
+	return a.c.doAppAPI(ctx, http.MethodPut, path, nil, body, nil)
 }
 
 func (a *AlarmActions) Dismiss(ctx context.Context, alarmID string) error {
 	if err := a.c.requireUser(ctx); err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/users/%s/alarms/%s/dismiss", a.c.UserID, alarmID)
-	return a.c.do(ctx, http.MethodPost, path, nil, map[string]string{}, nil)
+	path := fmt.Sprintf("/users/%s/routines", a.c.UserID)
+	body := map[string]any{"action": "dismiss", "alarmId": alarmID}
+	return a.c.doAppAPI(ctx, http.MethodPut, path, nil, body, nil)
 }
 
 func (a *AlarmActions) DismissAll(ctx context.Context) error {
 	if err := a.c.requireUser(ctx); err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/users/%s/alarms/active/dismiss-all", a.c.UserID)
-	return a.c.do(ctx, http.MethodPost, path, nil, map[string]string{}, nil)
+	path := fmt.Sprintf("/users/%s/routines", a.c.UserID)
+	body := map[string]any{"action": "dismiss-all"}
+	return a.c.doAppAPI(ctx, http.MethodPut, path, nil, body, nil)
 }
 
 func (a *AlarmActions) VibrationTest(ctx context.Context) error {
@@ -43,5 +46,5 @@ func (a *AlarmActions) VibrationTest(ctx context.Context) error {
 		return err
 	}
 	path := fmt.Sprintf("/users/%s/vibration-test", a.c.UserID)
-	return a.c.do(ctx, http.MethodPost, path, nil, map[string]string{}, nil)
+	return a.c.doAppAPI(ctx, http.MethodPost, path, nil, map[string]any{}, nil)
 }

@@ -13,9 +13,8 @@ import (
 )
 
 var alarmCmd = &cobra.Command{
-	Use:    "alarm",
-	Short:  "Manage alarms",
-	Hidden: true, // Verified broken 2026-01-29: Cannot GET
+	Use:   "alarm",
+	Short: "Manage alarms",
 }
 
 var alarmListCmd = &cobra.Command{
@@ -36,13 +35,14 @@ var alarmListCmd = &cobra.Command{
 				"id":        a.ID,
 				"time":      a.Time,
 				"enabled":   a.Enabled,
-				"days":      a.DaysOfWeek,
-				"vibration": a.Vibration,
-				"sound":     a.Sound,
+				"repeat":    a.Repeat.Enabled,
+				"vibration": a.Vibration.Enabled,
+				"thermal":   a.Thermal.Enabled,
+				"snoozing":  a.Snoozing,
 			})
 		}
 		rows = output.FilterFields(rows, viper.GetStringSlice("fields"))
-		return output.Print(output.Format(viper.GetString("output")), []string{"id", "time", "enabled", "days", "vibration", "sound"}, rows)
+		return output.Print(output.Format(viper.GetString("output")), []string{"id", "time", "enabled", "repeat", "vibration", "thermal"}, rows)
 	},
 }
 
@@ -57,22 +57,32 @@ var alarmCreateCmd = &cobra.Command{
 		if timeStr == "" {
 			return fmt.Errorf("--time required")
 		}
-		days := viper.GetIntSlice("days")
-		if len(days) == 0 {
-			return fmt.Errorf("--days required (comma separated 0=Sun..6=Sat)")
+		// Ensure time is in HH:MM:SS format
+		if len(timeStr) == 5 {
+			timeStr += ":00"
 		}
-		sound := viper.GetString("sound")
-		var soundPtr *string
-		if sound != "" {
-			soundPtr = &sound
+		days := viper.GetIntSlice("days")
+		weekDays := make(map[string]bool)
+		dayNames := []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
+		for _, d := range days {
+			if d >= 0 && d < 7 {
+				weekDays[dayNames[d]] = true
+			}
 		}
 		cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 		alarm := client.Alarm{
-			Enabled:    !viper.GetBool("disabled"),
-			Time:       timeStr,
-			DaysOfWeek: days,
-			Vibration:  !viper.GetBool("no-vibration"),
-			Sound:      soundPtr,
+			Enabled: !viper.GetBool("disabled"),
+			Time:    timeStr,
+			Repeat: client.AlarmRepeat{
+				Enabled:  len(days) > 0,
+				WeekDays: weekDays,
+			},
+			Vibration: client.AlarmVibration{
+				Enabled: !viper.GetBool("no-vibration"),
+			},
+			Thermal: client.AlarmThermal{
+				Enabled: viper.GetBool("thermal"),
+			},
 		}
 		res, err := cl.CreateAlarm(context.Background(), alarm)
 		if err != nil {
@@ -93,19 +103,37 @@ var alarmUpdateCmd = &cobra.Command{
 		}
 		patch := map[string]any{}
 		if f := viper.GetString("time"); f != "" {
-			patch["time"] = f
+			timeStr := f
+			if len(timeStr) == 5 {
+				timeStr += ":00"
+			}
+			patch["time"] = timeStr
 		}
 		if days := viper.GetIntSlice("days"); len(days) > 0 {
-			patch["daysOfWeek"] = days
+			weekDays := make(map[string]bool)
+			dayNames := []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
+			for _, d := range days {
+				if d >= 0 && d < 7 {
+					weekDays[dayNames[d]] = true
+				}
+			}
+			patch["repeat"] = map[string]any{
+				"enabled":  true,
+				"weekDays": weekDays,
+			}
 		}
 		if cmd.Flags().Changed("enabled") {
 			patch["enabled"] = viper.GetBool("enabled")
 		}
 		if cmd.Flags().Changed("no-vibration") {
-			patch["vibration"] = !viper.GetBool("no-vibration")
+			patch["vibration"] = map[string]any{
+				"enabled": !viper.GetBool("no-vibration"),
+			}
 		}
-		if sound := viper.GetString("sound"); sound != "" {
-			patch["sound"] = sound
+		if cmd.Flags().Changed("thermal") {
+			patch["thermal"] = map[string]any{
+				"enabled": viper.GetBool("thermal"),
+			}
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update")
@@ -137,27 +165,27 @@ var alarmDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	alarmCreateCmd.Flags().String("time", "", "HH:MM time")
-	alarmCreateCmd.Flags().IntSlice("days", nil, "Comma-separated days 0=Sun..6=Sat")
+	alarmCreateCmd.Flags().String("time", "", "HH:MM or HH:MM:SS time")
+	alarmCreateCmd.Flags().IntSlice("days", nil, "Comma-separated days 0=Sun..6=Sat (for repeating)")
 	alarmCreateCmd.Flags().Bool("disabled", false, "Create disabled")
 	alarmCreateCmd.Flags().Bool("no-vibration", false, "Disable vibration")
-	alarmCreateCmd.Flags().String("sound", "", "Sound id")
+	alarmCreateCmd.Flags().Bool("thermal", false, "Enable thermal wake")
 	viper.BindPFlag("time", alarmCreateCmd.Flags().Lookup("time"))
 	viper.BindPFlag("days", alarmCreateCmd.Flags().Lookup("days"))
 	viper.BindPFlag("disabled", alarmCreateCmd.Flags().Lookup("disabled"))
 	viper.BindPFlag("no-vibration", alarmCreateCmd.Flags().Lookup("no-vibration"))
-	viper.BindPFlag("sound", alarmCreateCmd.Flags().Lookup("sound"))
+	viper.BindPFlag("thermal", alarmCreateCmd.Flags().Lookup("thermal"))
 
-	alarmUpdateCmd.Flags().String("time", "", "HH:MM time")
+	alarmUpdateCmd.Flags().String("time", "", "HH:MM or HH:MM:SS time")
 	alarmUpdateCmd.Flags().IntSlice("days", nil, "Comma-separated days 0=Sun..6=Sat")
 	alarmUpdateCmd.Flags().Bool("enabled", true, "Set enabled true/false")
 	alarmUpdateCmd.Flags().Bool("no-vibration", false, "Disable vibration")
-	alarmUpdateCmd.Flags().String("sound", "", "Sound id")
+	alarmUpdateCmd.Flags().Bool("thermal", false, "Enable thermal wake")
 	viper.BindPFlag("time", alarmUpdateCmd.Flags().Lookup("time"))
 	viper.BindPFlag("days", alarmUpdateCmd.Flags().Lookup("days"))
 	viper.BindPFlag("enabled", alarmUpdateCmd.Flags().Lookup("enabled"))
 	viper.BindPFlag("no-vibration", alarmUpdateCmd.Flags().Lookup("no-vibration"))
-	viper.BindPFlag("sound", alarmUpdateCmd.Flags().Lookup("sound"))
+	viper.BindPFlag("thermal", alarmUpdateCmd.Flags().Lookup("thermal"))
 
 	// add subcommands
 	alarmCmd.AddCommand(alarmListCmd, alarmCreateCmd, alarmUpdateCmd, alarmDeleteCmd, alarmSnoozeCmd, alarmDismissCmd, alarmDismissAllCmd, alarmVibeCmd)

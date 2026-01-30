@@ -16,7 +16,7 @@ func (b *BaseActions) Info(ctx context.Context) (any, error) {
 	}
 	path := fmt.Sprintf("/users/%s/base", b.c.UserID)
 	var res any
-	err := b.c.do(ctx, http.MethodGet, path, nil, nil, &res)
+	err := b.c.doAppAPI(ctx, http.MethodGet, path, nil, nil, &res)
 	return res, err
 }
 
@@ -26,7 +26,7 @@ func (b *BaseActions) SetAngle(ctx context.Context, head, foot int) error {
 	}
 	path := fmt.Sprintf("/users/%s/base/angle", b.c.UserID)
 	body := map[string]any{"head": head, "foot": foot}
-	return b.c.do(ctx, http.MethodPost, path, nil, body, nil)
+	return b.c.doAppAPI(ctx, http.MethodPost, path, nil, body, nil)
 }
 
 func (b *BaseActions) Presets(ctx context.Context) (any, error) {
@@ -35,7 +35,7 @@ func (b *BaseActions) Presets(ctx context.Context) (any, error) {
 	}
 	path := fmt.Sprintf("/users/%s/base/presets", b.c.UserID)
 	var res any
-	err := b.c.do(ctx, http.MethodGet, path, nil, nil, &res)
+	err := b.c.doAppAPI(ctx, http.MethodGet, path, nil, nil, &res)
 	return res, err
 }
 
@@ -45,7 +45,7 @@ func (b *BaseActions) RunPreset(ctx context.Context, name string) error {
 	}
 	path := fmt.Sprintf("/users/%s/base/presets", b.c.UserID)
 	body := map[string]any{"name": name}
-	return b.c.do(ctx, http.MethodPost, path, nil, body, nil)
+	return b.c.doAppAPI(ctx, http.MethodPost, path, nil, body, nil)
 }
 
 func (b *BaseActions) VibrationTest(ctx context.Context) error {
@@ -54,5 +54,5 @@ func (b *BaseActions) VibrationTest(ctx context.Context) error {
 		return err
 	}
 	path := fmt.Sprintf("/devices/%s/vibration-test", deviceID)
-	return b.c.do(ctx, http.MethodPost, path, nil, map[string]any{}, nil)
+	return b.c.doAppAPI(ctx, http.MethodPost, path, nil, map[string]any{}, nil)
 }

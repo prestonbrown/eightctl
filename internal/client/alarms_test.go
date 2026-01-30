@@ -10,20 +10,19 @@ import (
 
 func TestAlarmActions_Snooze(t *testing.T) {
 	var capturedPath string
+	var capturedMethod string
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/alarms/a1/snooze", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/users/uid-123/routines", func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
-		if r.Method != http.MethodPost {
-			t.Errorf("expected POST, got %s", r.Method)
-		}
+		capturedMethod = r.Method
 		w.WriteHeader(http.StatusNoContent)
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -32,24 +31,29 @@ func TestAlarmActions_Snooze(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Snooze error: %v", err)
 	}
-	if capturedPath != "/users/uid-123/alarms/a1/snooze" {
+	if capturedPath != "/users/uid-123/routines" {
 		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPut {
+		t.Errorf("expected PUT, got %s", capturedMethod)
 	}
 }
 
 func TestAlarmActions_Dismiss(t *testing.T) {
 	var capturedPath string
+	var capturedMethod string
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/alarms/a1/dismiss", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/users/uid-123/routines", func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
+		capturedMethod = r.Method
 		w.WriteHeader(http.StatusNoContent)
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -58,24 +62,29 @@ func TestAlarmActions_Dismiss(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dismiss error: %v", err)
 	}
-	if capturedPath != "/users/uid-123/alarms/a1/dismiss" {
+	if capturedPath != "/users/uid-123/routines" {
 		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPut {
+		t.Errorf("expected PUT, got %s", capturedMethod)
 	}
 }
 
 func TestAlarmActions_DismissAll(t *testing.T) {
 	var capturedPath string
+	var capturedMethod string
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/alarms/active/dismiss-all", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/users/uid-123/routines", func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
+		capturedMethod = r.Method
 		w.WriteHeader(http.StatusNoContent)
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -84,8 +93,11 @@ func TestAlarmActions_DismissAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DismissAll error: %v", err)
 	}
-	if capturedPath != "/users/uid-123/alarms/active/dismiss-all" {
+	if capturedPath != "/users/uid-123/routines" {
 		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPut {
+		t.Errorf("expected PUT, got %s", capturedMethod)
 	}
 }
 
@@ -101,7 +113,7 @@ func TestAlarmActions_VibrationTest(t *testing.T) {
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()

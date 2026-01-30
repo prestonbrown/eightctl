@@ -19,7 +19,7 @@ func TestBaseActions_Info(t *testing.T) {
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -50,7 +50,7 @@ func TestBaseActions_SetAngle(t *testing.T) {
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -80,7 +80,7 @@ func TestBaseActions_Presets(t *testing.T) {
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -111,7 +111,7 @@ func TestBaseActions_RunPreset(t *testing.T) {
 	defer srv.Close()
 
 	c := New("email", "pass", "uid-123", "", "")
-	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()
@@ -142,6 +142,7 @@ func TestBaseActions_VibrationTest(t *testing.T) {
 
 	c := New("email", "pass", "", "", "")
 	c.BaseURL = srv.URL
+	c.AppAPIBaseURL = srv.URL
 	c.token = "t"
 	c.tokenExp = time.Now().Add(time.Hour)
 	c.HTTP = srv.Client()

@@ -3,6 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -24,10 +27,49 @@ var tempCmd = &cobra.Command{
 			return err
 		}
 		cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
+
+		durationStr := viper.GetString("duration")
+		if durationStr != "" {
+			minutes, err := parseDuration(durationStr)
+			if err != nil {
+				return err
+			}
+			if err := cl.SetTemperatureWithDuration(context.Background(), lvl, minutes); err != nil {
+				return err
+			}
+			fmt.Printf("temperature set (level %d) for %d minutes\n", lvl, minutes)
+			return nil
+		}
+
 		if err := cl.SetTemperature(context.Background(), lvl); err != nil {
 			return err
 		}
 		fmt.Printf("temperature set (level %d)\n", lvl)
 		return nil
 	},
+}
+
+// parseDuration parses duration strings like "30m", "1h", "90" (minutes).
+func parseDuration(s string) (int, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, fmt.Errorf("empty duration")
+	}
+
+	// Try standard Go duration parsing first
+	if d, err := time.ParseDuration(s); err == nil {
+		return int(d.Minutes()), nil
+	}
+
+	// Try plain number (treated as minutes)
+	if minutes, err := strconv.Atoi(s); err == nil {
+		return minutes, nil
+	}
+
+	return 0, fmt.Errorf("invalid duration format: %s (use e.g., 30m, 1h, or plain minutes)", s)
+}
+
+func init() {
+	tempCmd.Flags().String("duration", "", "Duration for temperature setting (e.g., 30m, 1h)")
+	viper.BindPFlag("duration", tempCmd.Flags().Lookup("duration"))
 }
