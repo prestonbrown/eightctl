@@ -103,6 +103,20 @@ var baseTestCmd = &cobra.Command{Use: "test", Short: "Run vibration test", RunE:
 	return nil
 }}
 
+var baseStopCmd = &cobra.Command{Use: "stop", Short: "Stop base movement", RunE: func(cmd *cobra.Command, args []string) error {
+	if err := requireAuthFields(); err != nil {
+		return err
+	}
+	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
+	if err := cl.Base().StopMovement(context.Background()); err != nil {
+		if isNoBaseError(err) {
+			return ErrNoAdjustableBase
+		}
+		return err
+	}
+	return nil
+}}
+
 func init() {
 	baseAngleCmd.Flags().Int("head", 0, "head angle")
 	baseAngleCmd.Flags().Int("foot", 0, "foot angle")
@@ -111,5 +125,5 @@ func init() {
 	basePresetRunCmd.Flags().String("name", "", "preset name")
 	viper.BindPFlag("name", basePresetRunCmd.Flags().Lookup("name"))
 
-	baseCmd.AddCommand(baseInfoCmd, baseAngleCmd, basePresetsCmd, basePresetRunCmd, baseTestCmd)
+	baseCmd.AddCommand(baseInfoCmd, baseAngleCmd, basePresetsCmd, basePresetRunCmd, baseTestCmd, baseStopCmd)
 }

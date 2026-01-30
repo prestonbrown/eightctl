@@ -11,7 +11,7 @@ import (
 
 func TestListAlarms(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/alarms", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v2/users/uid-123/alarms", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
@@ -152,7 +152,7 @@ func TestDeleteAlarm(t *testing.T) {
 	}
 }
 
-func TestListAlarmsV2(t *testing.T) {
+func TestListAlarmsV1(t *testing.T) {
 	var capturedPath string
 
 	mux := http.NewServeMux()
@@ -162,7 +162,7 @@ func TestListAlarmsV2(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"alarms":[{"id":"v2-alarm","enabled":true}]}`))
+		w.Write([]byte(`{"alarms":[{"id":"v1-alarm","enabled":true}]}`))
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
@@ -176,9 +176,9 @@ func TestListAlarmsV2(t *testing.T) {
 	var res struct {
 		Alarms []Alarm `json:"alarms"`
 	}
-	err := c.ListAlarmsV2(context.Background(), &res)
+	err := c.ListAlarmsV1(context.Background(), &res)
 	if err != nil {
-		t.Fatalf("ListAlarmsV2 error: %v", err)
+		t.Fatalf("ListAlarmsV1 error: %v", err)
 	}
 	if capturedPath != "/users/uid-123/alarms" {
 		t.Errorf("expected path /users/uid-123/alarms, got %s", capturedPath)
@@ -186,7 +186,7 @@ func TestListAlarmsV2(t *testing.T) {
 	if len(res.Alarms) != 1 {
 		t.Errorf("expected 1 alarm, got %d", len(res.Alarms))
 	}
-	if res.Alarms[0].ID != "v2-alarm" {
-		t.Errorf("expected alarm id v2-alarm, got %s", res.Alarms[0].ID)
+	if res.Alarms[0].ID != "v1-alarm" {
+		t.Errorf("expected alarm id v1-alarm, got %s", res.Alarms[0].ID)
 	}
 }

@@ -41,12 +41,13 @@ func (t *TempModes) UpdateNapAlarmSettings(ctx context.Context, body map[string]
 }
 
 // Hot flash controls
+// APK uses PUT method for activate/deactivate.
 func (t *TempModes) HotFlashActivate(ctx context.Context) error {
-	return t.simplePost(ctx, "/temperature/hot-flash-mode/activate")
+	return t.simplePut(ctx, "/temperature/hot-flash-mode/activate", nil)
 }
 
 func (t *TempModes) HotFlashDeactivate(ctx context.Context) error {
-	return t.simplePost(ctx, "/temperature/hot-flash-mode/deactivate")
+	return t.simplePut(ctx, "/temperature/hot-flash-mode/deactivate", nil)
 }
 
 func (t *TempModes) HotFlashStatus(ctx context.Context, out any) error {

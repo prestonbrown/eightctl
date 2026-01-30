@@ -59,17 +59,17 @@ func TestBaseActions_SetAngle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SetAngle error: %v", err)
 	}
-	if capturedBody["head"] != float64(30) {
-		t.Errorf("expected head=30, got %v", capturedBody["head"])
+	if capturedBody["torsoAngle"] != float64(30) {
+		t.Errorf("expected torsoAngle=30, got %v", capturedBody["torsoAngle"])
 	}
-	if capturedBody["foot"] != float64(15) {
-		t.Errorf("expected foot=15, got %v", capturedBody["foot"])
+	if capturedBody["legAngle"] != float64(15) {
+		t.Errorf("expected legAngle=15, got %v", capturedBody["legAngle"])
 	}
 }
 
 func TestBaseActions_Presets(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/base/presets", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v2/users/uid-123/base/presets", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
 		}

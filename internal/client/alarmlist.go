@@ -27,20 +27,28 @@ type AlarmThermal struct {
 
 // Alarm represents alarm payload (app-api format).
 type Alarm struct {
-	ID        string         `json:"id,omitempty"`
-	Enabled   bool           `json:"enabled"`
-	Time      string         `json:"time"` // HH:MM:SS format
-	Repeat    AlarmRepeat    `json:"repeat,omitempty"`
-	Vibration AlarmVibration `json:"vibration,omitempty"`
-	Thermal   AlarmThermal   `json:"thermal,omitempty"`
-	Snoozing  bool           `json:"snoozing,omitempty"`
+	ID             string         `json:"id,omitempty"`
+	Enabled        bool           `json:"enabled"`
+	Time           string         `json:"time"` // HH:MM:SS format
+	Repeat         AlarmRepeat    `json:"repeat,omitempty"`
+	Vibration      AlarmVibration `json:"vibration,omitempty"`
+	Thermal        AlarmThermal   `json:"thermal,omitempty"`
+	Snoozing       bool           `json:"snoozing,omitempty"`
+	DismissedUntil string         `json:"dismissedUntil,omitempty"`
+	SkippedUntil   string         `json:"skippedUntil,omitempty"`
+	SnoozedUntil   string         `json:"snoozedUntil,omitempty"`
+	SkipNext       bool           `json:"skipNext,omitempty"`
+	NextTimestamp  string         `json:"nextTimestamp,omitempty"`
+	StartTimestamp string         `json:"startTimestamp,omitempty"`
+	EndTimestamp   string         `json:"endTimestamp,omitempty"`
 }
 
+// ListAlarms retrieves alarms using the v2 API endpoint per APK.
 func (c *Client) ListAlarms(ctx context.Context) ([]Alarm, error) {
 	if err := c.requireUser(ctx); err != nil {
 		return nil, err
 	}
-	path := fmt.Sprintf("/users/%s/alarms", c.UserID)
+	path := fmt.Sprintf("/v2/users/%s/alarms", c.UserID)
 	var res struct {
 		Alarms []Alarm `json:"alarms"`
 	}
@@ -86,8 +94,8 @@ func (c *Client) DeleteAlarm(ctx context.Context, alarmID string) error {
 	return c.doAppAPI(ctx, http.MethodDelete, path, nil, nil, nil)
 }
 
-// ListAlarmsV2 retrieves alarms using the v2 API endpoint (deprecated, use ListAlarms).
-func (c *Client) ListAlarmsV2(ctx context.Context, out any) error {
+// ListAlarmsV1 retrieves alarms using the legacy v1 API endpoint.
+func (c *Client) ListAlarmsV1(ctx context.Context, out any) error {
 	if err := c.requireUser(ctx); err != nil {
 		return err
 	}

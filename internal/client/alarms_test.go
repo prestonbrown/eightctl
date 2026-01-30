@@ -13,7 +13,7 @@ func TestAlarmActions_Snooze(t *testing.T) {
 	var capturedMethod string
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/routines", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/users/uid-123/alarms/a1/snooze", func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
 		capturedMethod = r.Method
 		w.WriteHeader(http.StatusNoContent)
@@ -31,7 +31,7 @@ func TestAlarmActions_Snooze(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Snooze error: %v", err)
 	}
-	if capturedPath != "/users/uid-123/routines" {
+	if capturedPath != "/users/uid-123/alarms/a1/snooze" {
 		t.Errorf("unexpected path: %s", capturedPath)
 	}
 	if capturedMethod != http.MethodPut {
@@ -44,7 +44,7 @@ func TestAlarmActions_Dismiss(t *testing.T) {
 	var capturedMethod string
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/routines", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/users/uid-123/alarms/a1/dismiss", func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
 		capturedMethod = r.Method
 		w.WriteHeader(http.StatusNoContent)
@@ -62,7 +62,7 @@ func TestAlarmActions_Dismiss(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dismiss error: %v", err)
 	}
-	if capturedPath != "/users/uid-123/routines" {
+	if capturedPath != "/users/uid-123/alarms/a1/dismiss" {
 		t.Errorf("unexpected path: %s", capturedPath)
 	}
 	if capturedMethod != http.MethodPut {
@@ -75,7 +75,7 @@ func TestAlarmActions_DismissAll(t *testing.T) {
 	var capturedMethod string
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/uid-123/routines", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/users/uid-123/alarms/active/dismiss-all", func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
 		capturedMethod = r.Method
 		w.WriteHeader(http.StatusNoContent)
@@ -93,7 +93,7 @@ func TestAlarmActions_DismissAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DismissAll error: %v", err)
 	}
-	if capturedPath != "/users/uid-123/routines" {
+	if capturedPath != "/users/uid-123/alarms/active/dismiss-all" {
 		t.Errorf("unexpected path: %s", capturedPath)
 	}
 	if capturedMethod != http.MethodPut {

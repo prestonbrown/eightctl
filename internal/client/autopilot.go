@@ -57,11 +57,13 @@ func (a *AutopilotActions) SetLevelSuggestions(ctx context.Context, enabled bool
 	return a.c.do(ctx, http.MethodPut, path, nil, body, nil)
 }
 
+// SetSnoreMitigation enables or disables snoring mitigation.
+// APK uses PUT method for this endpoint.
 func (a *AutopilotActions) SetSnoreMitigation(ctx context.Context, enabled bool) error {
 	if err := a.c.requireUser(ctx); err != nil {
 		return err
 	}
 	path := fmt.Sprintf("/users/%s/autopilotDetails/snoringMitigation", a.c.UserID)
 	body := map[string]any{"enabled": enabled}
-	return a.c.do(ctx, http.MethodPost, path, nil, body, nil)
+	return a.c.do(ctx, http.MethodPut, path, nil, body, nil)
 }
