@@ -12,12 +12,13 @@ import (
 
 var metricsCmd = &cobra.Command{Use: "metrics", Short: "Sleep metrics and insights"}
 
-var metricsTrendsCmd = &cobra.Command{Use: "trends", RunE: func(cmd *cobra.Command, args []string) error {
+var metricsTrendsCmd = &cobra.Command{Use: "trends", Short: "Get sleep trends for date range", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
-	from := viper.GetString("from")
-	to := viper.GetString("to")
+	// Use cmd.Flags() directly to avoid viper global key conflicts
+	from, _ := cmd.Flags().GetString("from")
+	to, _ := cmd.Flags().GetString("to")
 	tz := viper.GetString("timezone")
 	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 	var out any
@@ -79,8 +80,7 @@ var metricsInsightsCmd = &cobra.Command{Use: "insights", Hidden: true, RunE: fun
 func init() {
 	metricsTrendsCmd.Flags().String("from", "", "from date YYYY-MM-DD")
 	metricsTrendsCmd.Flags().String("to", "", "to date YYYY-MM-DD")
-	viper.BindPFlag("from", metricsTrendsCmd.Flags().Lookup("from"))
-	viper.BindPFlag("to", metricsTrendsCmd.Flags().Lookup("to"))
+	// Note: Not using viper.BindPFlag for from/to to avoid global key conflicts
 	metricsIntervalsCmd.Flags().String("id", "", "session id")
 	viper.BindPFlag("id", metricsIntervalsCmd.Flags().Lookup("id"))
 
