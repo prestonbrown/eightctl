@@ -615,3 +615,38 @@ func TestEnsureUserID_AlreadySet(t *testing.T) {
 		t.Errorf("expected existing-user, got %s", c.UserID)
 	}
 }
+
+func TestClient_GetUserTemperature(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/other-user-id/temperature", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"currentLevel": -20,
+			"currentState": map[string]any{
+				"type": "smart",
+			},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	status, err := c.GetUserTemperature(context.Background(), "other-user-id")
+	if err != nil {
+		t.Fatalf("GetUserTemperature error: %v", err)
+	}
+	if status.CurrentLevel != -20 {
+		t.Errorf("expected level -20, got %d", status.CurrentLevel)
+	}
+	if status.CurrentState.Type != "smart" {
+		t.Errorf("expected state type 'smart', got %s", status.CurrentState.Type)
+	}
+}

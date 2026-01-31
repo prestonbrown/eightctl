@@ -527,6 +527,20 @@ func (c *Client) GetStatus(ctx context.Context) (*TempStatus, error) {
 	return &res, nil
 }
 
+// GetUserTemperature fetches temperature status for a specific user ID.
+// Unlike GetStatus which uses the authenticated user, this allows querying any user.
+func (c *Client) GetUserTemperature(ctx context.Context, userID string) (*TempStatus, error) {
+	if err := c.ensureToken(ctx); err != nil {
+		return nil, err
+	}
+	path := fmt.Sprintf("/users/%s/temperature", userID)
+	var res TempStatus
+	if err := c.do(ctx, http.MethodGet, path, nil, nil, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
 // SleepDay represents aggregated sleep metrics for a day.
 type SleepDay struct {
 	Date          string  `json:"day"`
