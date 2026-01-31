@@ -85,3 +85,44 @@ func ParsePowerState(s string) PowerState {
 		return PowerOff
 	}
 }
+
+// SleepStage represents the current sleep stage.
+type SleepStage int
+
+const (
+	StageUnknown SleepStage = iota
+	StageAwake
+	StageLight
+	StageDeep
+	StageREM
+)
+
+func (s SleepStage) String() string {
+	switch s {
+	case StageAwake:
+		return "awake"
+	case StageLight:
+		return "light"
+	case StageDeep:
+		return "deep"
+	case StageREM:
+		return "rem"
+	default:
+		return "unknown"
+	}
+}
+
+func ParseSleepStage(s string) SleepStage {
+	switch strings.ToLower(s) {
+	case "awake":
+		return StageAwake
+	case "light":
+		return StageLight
+	case "deep":
+		return StageDeep
+	case "rem":
+		return StageREM
+	default:
+		return StageUnknown
+	}
+}

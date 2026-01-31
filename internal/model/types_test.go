@@ -75,3 +75,30 @@ func TestParsePowerState(t *testing.T) {
 		})
 	}
 }
+
+func TestSleepStage_String(t *testing.T) {
+	assert.Equal(t, "awake", StageAwake.String())
+	assert.Equal(t, "light", StageLight.String())
+	assert.Equal(t, "deep", StageDeep.String())
+	assert.Equal(t, "rem", StageREM.String())
+	assert.Equal(t, "unknown", StageUnknown.String())
+}
+
+func TestParseSleepStage(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected SleepStage
+	}{
+		{"awake", StageAwake},
+		{"light", StageLight},
+		{"deep", StageDeep},
+		{"rem", StageREM},
+		{"REM", StageREM},
+		{"invalid", StageUnknown},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, ParseSleepStage(tt.input))
+		})
+	}
+}
