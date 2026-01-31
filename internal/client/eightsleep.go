@@ -462,6 +462,26 @@ func (c *Client) setPower(ctx context.Context, on bool) error {
 	return c.do(ctx, http.MethodPost, path, nil, body, nil)
 }
 
+// TurnOnUser powers on the device for a specific user ID.
+func (c *Client) TurnOnUser(ctx context.Context, userID string) error {
+	return c.setUserPower(ctx, userID, true)
+}
+
+// TurnOffUser powers off the device for a specific user ID.
+func (c *Client) TurnOffUser(ctx context.Context, userID string) error {
+	return c.setUserPower(ctx, userID, false)
+}
+
+// setUserPower is the shared implementation for TurnOnUser and TurnOffUser.
+func (c *Client) setUserPower(ctx context.Context, userID string, on bool) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/devices/power", userID)
+	body := map[string]bool{"on": on}
+	return c.do(ctx, http.MethodPost, path, nil, body, nil)
+}
+
 func (c *Client) Identity() tokencache.Identity {
 	return tokencache.Identity{
 		BaseURL:  c.BaseURL,
@@ -539,6 +559,20 @@ func (c *Client) GetUserTemperature(ctx context.Context, userID string) (*TempSt
 		return nil, err
 	}
 	return &res, nil
+}
+
+// SetUserTemperature sets target heating/cooling level for a specific user ID.
+// Unlike SetTemperature which uses the authenticated user, this allows controlling any user.
+func (c *Client) SetUserTemperature(ctx context.Context, userID string, level int) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	if level < -100 || level > 100 {
+		return fmt.Errorf("level must be between -100 and 100")
+	}
+	path := fmt.Sprintf("/users/%s/temperature", userID)
+	body := map[string]int{"currentLevel": level}
+	return c.do(ctx, http.MethodPut, path, nil, body, nil)
 }
 
 // SleepDay represents aggregated sleep metrics for a day.

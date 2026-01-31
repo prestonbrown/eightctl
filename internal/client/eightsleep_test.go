@@ -650,3 +650,141 @@ func TestClient_GetUserTemperature(t *testing.T) {
 		t.Errorf("expected state type 'smart', got %s", status.CurrentState.Type)
 	}
 }
+
+func TestSetUserTemperature(t *testing.T) {
+	var capturedPath string
+	var capturedMethod string
+	var capturedBody map[string]int
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/other-user-id/temperature", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.SetUserTemperature(context.Background(), "other-user-id", 75)
+	if err != nil {
+		t.Fatalf("SetUserTemperature error: %v", err)
+	}
+	if capturedPath != "/users/other-user-id/temperature" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPut {
+		t.Errorf("expected PUT, got %s", capturedMethod)
+	}
+	if capturedBody["currentLevel"] != 75 {
+		t.Errorf("expected level 75, got %v", capturedBody)
+	}
+}
+
+func TestSetUserTemperature_OutOfRange(t *testing.T) {
+	c := New("email", "pass", "", "", "")
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+
+	tests := []struct {
+		level int
+		valid bool
+	}{
+		{-101, false},
+		{-100, true},
+		{0, true},
+		{100, true},
+		{101, false},
+	}
+
+	for _, tt := range tests {
+		if !tt.valid {
+			err := c.SetUserTemperature(context.Background(), "any-user", tt.level)
+			if err == nil {
+				t.Errorf("expected error for level %d", tt.level)
+			}
+			if !strings.Contains(err.Error(), "level must be between") {
+				t.Errorf("expected range error, got: %v", err)
+			}
+		}
+	}
+}
+
+func TestTurnOnUser(t *testing.T) {
+	var capturedPath string
+	var capturedMethod string
+	var capturedBody map[string]bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/other-user-id/devices/power", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedMethod = r.Method
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.TurnOnUser(context.Background(), "other-user-id")
+	if err != nil {
+		t.Fatalf("TurnOnUser error: %v", err)
+	}
+	if capturedPath != "/users/other-user-id/devices/power" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedMethod != http.MethodPost {
+		t.Errorf("expected POST, got %s", capturedMethod)
+	}
+	if !capturedBody["on"] {
+		t.Errorf("expected on=true, got %v", capturedBody)
+	}
+}
+
+func TestTurnOffUser(t *testing.T) {
+	var capturedPath string
+	var capturedBody map[string]bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/other-user-id/devices/power", func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	err := c.TurnOffUser(context.Background(), "other-user-id")
+	if err != nil {
+		t.Fatalf("TurnOffUser error: %v", err)
+	}
+	if capturedPath != "/users/other-user-id/devices/power" {
+		t.Errorf("unexpected path: %s", capturedPath)
+	}
+	if capturedBody["on"] {
+		t.Errorf("expected on=false, got %v", capturedBody)
+	}
+}

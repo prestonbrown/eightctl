@@ -35,6 +35,12 @@ eightctl --verbose <command>
 - `internal/daemon/` - YAML schedule parser and minute-tick execution loop
 - `internal/output/` - Table/JSON/CSV output formatting
 - `internal/tokencache/` - OS keyring token persistence (macOS Keychain, Linux SecretService, Windows Credential Manager)
+- `internal/model/` - Domain types (Side, PowerState, SleepStage, UserState, DeviceState)
+- `internal/state/` - State management with caching and observer notifications
+- `internal/adapter/` - Smart home adapter framework
+- `internal/adapter/mqtt/` - Home Assistant MQTT adapter
+- `internal/adapter/hubitat/` - Hubitat HTTP adapter
+- `drivers/hubitat/` - Groovy drivers for Hubitat Elevation
 
 ### Configuration Priority (highest first)
 
@@ -62,6 +68,21 @@ eightctl --verbose <command>
 1. Add method to `Client` in `internal/client/` (use domain-specific file or create new one)
 2. Use `c.do()` for HTTP requests (handles auth headers, JSON decoding)
 
+### Smart Home Adapters
+
+The adapter framework (`internal/adapter/`) provides integration with smart home platforms.
+
+**Key types:**
+- `adapter.Adapter` interface: `Start()`, `HandleCommand()`, `Stop()`
+- `adapter.Command`: Action (on/off/set_temperature), Side (left/right), Temperature
+- `state.Manager`: Caches device state, provides observer notifications
+
+**Adding a new adapter:**
+1. Create package under `internal/adapter/myplatform/`
+2. Implement `adapter.Adapter` interface
+3. Use `state.Manager` for state access and mutations
+4. Create command in `internal/cmd/myplatform.go`
+
 ### Testing
 
 - Standard Go testing with `httptest.NewServer` for API mocks
@@ -74,6 +95,9 @@ eightctl --verbose <command>
 - Config values via `viper.GetString()`, `viper.GetBool()`
 - Token caching is transparent: first auth caches token, subsequent calls reuse it
 - Daemon uses simple minute-tick loop with execute-once-per-day semantics
+- State manager provides caching with configurable TTL; call `InvalidateCache()` after mutations
+- Adapters implement `adapter.Adapter` interface for consistent lifecycle management
+- Model types in `internal/model/` provide JSON serialization and parsing helpers
 
 ## Git Worktrees
 

@@ -26,18 +26,32 @@ go install ./cmd/eightctl
 ```
 eightctl/
 ├── cmd/eightctl/main.go     # Entry point
+├── drivers/
+│   └── hubitat/             # Groovy drivers for Hubitat
+│       ├── eight-sleep-pod.groovy
+│       └── eight-sleep-side.groovy
 ├── internal/
+│   ├── adapter/             # Smart home adapter framework
+│   │   ├── adapter.go       # Adapter interface and Command type
+│   │   ├── mqtt/            # Home Assistant MQTT adapter
+│   │   │   ├── adapter.go
+│   │   │   └── discovery.go
+│   │   └── hubitat/         # Hubitat HTTP adapter
+│   │       └── server.go
 │   ├── cmd/                 # Cobra commands
 │   ├── client/              # Eight Sleep API client
 │   ├── config/              # Viper configuration
 │   ├── daemon/              # Schedule daemon
+│   ├── model/               # Domain types (Side, PowerState, etc.)
 │   ├── output/              # Table/JSON/CSV formatting
+│   ├── state/               # State management with caching
 │   └── tokencache/          # OS keyring token storage
 └── docs/
-    ├── api-reference.md     # API endpoint documentation
-    ├── cli-reference.md     # User-facing command docs
-    ├── endpoint-audit.md    # Broken endpoint tracking
-    └── development.md       # This file
+    ├── api-reference.md
+    ├── cli-reference.md
+    ├── development.md       # This file
+    ├── home-assistant.md    # Home Assistant setup guide
+    └── hubitat.md           # Hubitat setup guide
 ```
 
 ## Adding a New Command
@@ -110,6 +124,56 @@ func TestMyEndpoint(t *testing.T) {
     // assertions...
 }
 ```
+
+## Smart Home Adapters
+
+eightctl includes adapters for smart home platforms.
+
+### Architecture
+
+```
+┌──────────────┐     ┌───────────────┐     ┌─────────────┐
+│ Smart Home   │────▶│ Adapter       │────▶│ State       │
+│ Platform     │◀────│ (mqtt/hubitat)│◀────│ Manager     │
+└──────────────┘     └───────────────┘     └─────────────┘
+                            │                     │
+                            │                     ▼
+                            │              ┌─────────────┐
+                            └─────────────▶│ API Client  │
+                                          └─────────────┘
+```
+
+### Key Components
+
+**adapter.Adapter interface:**
+```go
+type Adapter interface {
+    Start(ctx context.Context) error
+    HandleCommand(ctx context.Context, cmd Command) error
+    Stop() error
+}
+```
+
+**state.Manager:**
+- Caches device state with configurable TTL
+- Provides `GetState()`, `SetTemperature()`, `TurnOn()`, `TurnOff()`
+- Supports observers for state change notifications
+
+### Adding a New Adapter
+
+1. Create package `internal/adapter/myplatform/`
+2. Implement `adapter.Adapter` interface
+3. Use `state.Manager` for state operations
+4. Create `internal/cmd/myplatform.go` command
+5. Add documentation in `docs/myplatform.md`
+
+### Model Types
+
+Domain types in `internal/model/`:
+- `Side` - Left or Right (with JSON marshaling)
+- `PowerState` - Off, Smart, Manual
+- `UserState` - Per-side state (temperature, presence)
+- `DeviceState` - Full device state with both sides
 
 ---
 
