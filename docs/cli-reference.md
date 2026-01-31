@@ -60,16 +60,16 @@ These commands have been verified to work with the current Eight Sleep API.
 | Command | Description |
 |---------|-------------|
 | `eightctl whoami` | Show current user profile and devices |
-| `eightctl status` | Show current temperature state |
+| `eightctl status` | Show current temperature state (`--side left\|right`) |
 | `eightctl version` | Show eightctl version |
 
 ### Temperature Control
 
 | Command | Description |
 |---------|-------------|
-| `eightctl on` | Turn on the pod (smart/autopilot mode) |
-| `eightctl off` | Turn off the pod |
-| `eightctl temp <level>` | Set temperature level (-100 to 100) |
+| `eightctl on` | Turn on the pod (smart/autopilot mode) (`--side left\|right`) |
+| `eightctl off` | Turn off the pod (`--side left\|right`) |
+| `eightctl temp <level>` | Set temperature level (-100 to 100) (`--side left\|right`) |
 
 ### Device Information
 
@@ -94,6 +94,32 @@ These commands have been verified to work with the current Eight Sleep API.
 |---------|-------------|
 | `eightctl daemon --schedule FILE` | Run scheduled automations |
 | `eightctl daemon --dry-run` | Preview schedule without executing |
+
+### Smart Home Integration
+
+| Command | Description |
+|---------|-------------|
+| `eightctl mqtt` | Run MQTT bridge for Home Assistant |
+| `eightctl hubitat` | Run HTTP server for Hubitat |
+
+#### MQTT Flags
+
+| Flag | Description |
+|------|-------------|
+| `--broker` | MQTT broker URL (default: tcp://localhost:1883) |
+| `--topic-prefix` | Topic prefix for discovery (default: homeassistant) |
+| `--device-name` | Device name in Home Assistant (default: Eight Sleep Pod) |
+| `--client-id` | MQTT client ID (default: eightctl) |
+| `--mqtt-username` | MQTT username (optional) |
+| `--mqtt-password` | MQTT password (optional) |
+| `--poll-interval` | State polling interval (default: 30s) |
+
+#### Hubitat Flags
+
+| Flag | Description |
+|------|-------------|
+| `--port` | HTTP server port (default: 8080) |
+| `--poll-interval` | State polling interval (default: 30s) |
 
 ## Hidden Commands
 
@@ -187,8 +213,45 @@ Run with:
 eightctl daemon --schedule ~/.config/eightctl/schedule.yaml
 ```
 
+## Smart Home Integration
+
+eightctl provides built-in support for smart home platforms.
+
+### MQTT Bridge (Home Assistant)
+
+The MQTT command runs a bridge that publishes Eight Sleep state to an MQTT broker and subscribes to command topics. It supports Home Assistant MQTT Discovery for automatic device configuration.
+
+```bash
+eightctl mqtt --broker tcp://mqtt.local:1883
+```
+
+The bridge publishes:
+- Temperature level and state for each side
+- Online/offline status
+- Supports commands: on, off, set temperature
+
+See [Home Assistant Guide](./home-assistant.md) for complete setup instructions.
+
+### Hubitat HTTP Server
+
+The Hubitat command runs an HTTP server that exposes a REST API for Hubitat Maker API integration.
+
+```bash
+eightctl hubitat --port 8080
+```
+
+Endpoints:
+- `GET /status` - Current state for both sides
+- `POST /left/on`, `POST /right/on` - Turn on a side
+- `POST /left/off`, `POST /right/off` - Turn off a side
+- `POST /left/temp`, `POST /right/temp` - Set temperature (body: `{"level": -10}`)
+
+See [Hubitat Guide](./hubitat.md) for complete setup instructions.
+
 ## See Also
 
 - [API Reference](./api-reference.md) - Eight Sleep API endpoint documentation
 - [Endpoint Audit](./endpoint-audit.md) - Status of endpoint testing
 - [Development Guide](./development.md) - Contributing and reverse engineering
+- [Home Assistant Guide](./home-assistant.md) - MQTT bridge setup for Home Assistant
+- [Hubitat Guide](./hubitat.md) - HTTP server setup for Hubitat

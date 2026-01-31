@@ -1,6 +1,6 @@
 # 🛏️ eightctl — Control your sleep, from the terminal
 
-A modern Go CLI for Eight Sleep Pods. Control power/temperature, alarms, schedules, audio, base, autopilot, travel, household, and export sleep metrics. Includes a daemon for scheduled routines.
+A modern Go CLI for Eight Sleep Pods. Control power/temperature, run automations, and integrate with Home Assistant and Hubitat.
 
 > Eight Sleep does **not** publish a stable public API. `eightctl` talks to the same undocumented cloud endpoints the mobile apps use. Default OAuth client creds are baked in (from Android APK 7.39.17), so typically you only supply email + password.
 > **Status:** WIP. The code paths are implemented, but live verification is currently blocked by Eight Sleep API rate limiting on the test account.
@@ -29,6 +29,12 @@ eightctl temp 20
 
 # run daemon with your YAML schedule (see docs/example-schedule.yaml)
 eightctl daemon --dry-run
+
+# Home Assistant via MQTT bridge
+eightctl mqtt --broker tcp://localhost:1883
+
+# Hubitat via HTTP server
+eightctl hubitat --port 8080
 ```
 
 ## Command Surface
@@ -43,7 +49,10 @@ eightctl daemon --dry-run
 - **Autopilot:** `autopilot details|history|recap`, `autopilot set-level-suggestions`, `autopilot set-snore-mitigation`
 - **Travel:** `travel trips|create-trip|delete-trip|plans|create-plan|update-plan|tasks|airport-search|flight-status`
 - **Household:** `household summary|schedule|current-set|invitations|devices|users|guests`
-- **Misc:** `tracks`, `feats`, `whoami`, `version`
+- **Misc:** `tracks`, `feats`, `whoami`, `version`, `sides`
+- **Smart Home:** `mqtt`, `hubitat`
+
+Use `--side left|right` flag for per-side control where applicable.
 
 Use `--output table|json|csv` and `--fields field1,field2` to shape output. `--verbose` enables debug logs; `--quiet` hides the config banner.
 
@@ -51,6 +60,30 @@ Use `--output table|json|csv` and `--fields field1,field2` to shape output. `--v
 Priority: flags > env vars (`EIGHTCTL_*`) > config file.
 
 Key fields: `email`, `password`, optional `user_id`, `client_id`, `client_secret`, `timezone`, `output`, `fields`, `verbose`. The client auto-resolves `user_id` and `device_id` after authentication. Config file permissions are checked (warn if >0600).
+
+## Smart Home Integration
+
+eightctl can bridge your Eight Sleep Pod to smart home platforms.
+
+### Home Assistant (MQTT)
+
+Uses MQTT Discovery to automatically create climate entities:
+
+```bash
+eightctl mqtt --broker tcp://192.168.1.10:1883
+```
+
+Entities appear as `climate.eight_sleep_pod_left` and `climate.eight_sleep_pod_right`. See [Home Assistant Guide](docs/home-assistant.md).
+
+### Hubitat Elevation (HTTP)
+
+Runs a local HTTP server for Hubitat Maker API:
+
+```bash
+eightctl hubitat --port 8080
+```
+
+Install the Groovy drivers from `drivers/hubitat/`. See [Hubitat Guide](docs/hubitat.md).
 
 ## Tooling
 - Make: `make fmt` (gofumpt), `make lint` (golangci-lint), `make test` (go test ./...)
@@ -68,3 +101,5 @@ Key fields: `email`, `password`, optional `user_id`, `client_id`, `client_secret
 - Home Assistant integrations: https://github.com/lukas-clarke/eight_sleep and https://github.com/grantnedwards/eight-sleep
 - Homebridge plugin: https://github.com/nfarina/homebridge-eightsleep
 - Background on the unofficial API and feature removals: https://www.reddit.com/r/EightSleep/comments/15ybfrv/eight_sleep_removed_smart_home_capabilities/
+
+Unlike the community projects above that require separate installations, eightctl now provides native smart home integration via built-in MQTT and HTTP bridges.

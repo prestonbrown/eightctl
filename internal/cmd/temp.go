@@ -12,6 +12,7 @@ import (
 
 	"github.com/steipete/eightctl/internal/client"
 	"github.com/steipete/eightctl/internal/daemon"
+	"github.com/steipete/eightctl/internal/model"
 )
 
 var tempCmd = &cobra.Command{
@@ -28,20 +29,42 @@ var tempCmd = &cobra.Command{
 		}
 		cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 
+		ctx := context.Background()
+		sideStr := viper.GetString("temp_side")
 		durationStr := viper.GetString("duration")
+
+		if sideStr != "" {
+			if durationStr != "" {
+				return fmt.Errorf("--duration is not supported with --side")
+			}
+			side, err := model.ParseSide(sideStr)
+			if err != nil {
+				return err
+			}
+			userID, err := getUserIDForSide(ctx, cl, side)
+			if err != nil {
+				return err
+			}
+			if err := cl.SetUserTemperature(ctx, userID, lvl); err != nil {
+				return err
+			}
+			fmt.Printf("temperature set (level %d) for %s side\n", lvl, side)
+			return nil
+		}
+
 		if durationStr != "" {
 			minutes, err := parseDuration(durationStr)
 			if err != nil {
 				return err
 			}
-			if err := cl.SetTemperatureWithDuration(context.Background(), lvl, minutes); err != nil {
+			if err := cl.SetTemperatureWithDuration(ctx, lvl, minutes); err != nil {
 				return err
 			}
 			fmt.Printf("temperature set (level %d) for %d minutes\n", lvl, minutes)
 			return nil
 		}
 
-		if err := cl.SetTemperature(context.Background(), lvl); err != nil {
+		if err := cl.SetTemperature(ctx, lvl); err != nil {
 			return err
 		}
 		fmt.Printf("temperature set (level %d)\n", lvl)
@@ -72,4 +95,6 @@ func parseDuration(s string) (int, error) {
 func init() {
 	tempCmd.Flags().String("duration", "", "Duration for temperature setting (e.g., 30m, 1h)")
 	viper.BindPFlag("duration", tempCmd.Flags().Lookup("duration"))
+	tempCmd.Flags().String("side", "", "Set temperature for specific side (left or right)")
+	viper.BindPFlag("temp_side", tempCmd.Flags().Lookup("side"))
 }
