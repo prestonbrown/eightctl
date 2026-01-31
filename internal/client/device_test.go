@@ -526,3 +526,58 @@ func TestDeviceActions_CancelPrimingTask(t *testing.T) {
 		t.Errorf("unexpected path: %s", capturedPath)
 	}
 }
+
+func TestDeviceActions_GetWithUsers(t *testing.T) {
+	var capturedQuery string
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/me", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"user":{"userId":"uid-123","currentDevice":{"id":"dev-456"}}}`))
+	})
+	mux.HandleFunc("/devices/dev-456", func(w http.ResponseWriter, r *http.Request) {
+		capturedQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"result": map[string]any{
+				"id":              "dev-456",
+				"roomTemperature": 68.5,
+				"leftUserId":      "left-user-id",
+				"rightUserId":     "right-user-id",
+				"priming": map[string]any{
+					"status": "ready",
+				},
+				"waterLevel": 100,
+			},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	c := New("email", "pass", "", "", "")
+	c.BaseURL = srv.URL
+	c.token = "t"
+	c.tokenExp = time.Now().Add(time.Hour)
+	c.HTTP = srv.Client()
+
+	info, err := c.Device().GetWithUsers(context.Background())
+	if err != nil {
+		t.Fatalf("GetWithUsers error: %v", err)
+	}
+	if info.ID != "dev-456" {
+		t.Errorf("expected ID dev-456, got %s", info.ID)
+	}
+	if info.LeftUserID != "left-user-id" {
+		t.Errorf("expected LeftUserID left-user-id, got %s", info.LeftUserID)
+	}
+	if info.RightUserID != "right-user-id" {
+		t.Errorf("expected RightUserID right-user-id, got %s", info.RightUserID)
+	}
+	if info.RoomTemperature < 68.4 || info.RoomTemperature > 68.6 {
+		t.Errorf("expected RoomTemperature ~68.5, got %f", info.RoomTemperature)
+	}
+	// Verify filter query param was sent
+	if capturedQuery == "" {
+		t.Error("expected filter query parameter")
+	}
+}
