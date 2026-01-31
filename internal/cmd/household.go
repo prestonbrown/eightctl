@@ -10,7 +10,7 @@ import (
 	"github.com/steipete/eightctl/internal/output"
 )
 
-var householdCmd = &cobra.Command{Use: "household", Short: "Household info"}
+var householdCmd = &cobra.Command{Use: "household", Short: "Household info", Hidden: true} // Verified broken 2026-01-29: Cannot GET
 
 func householdSimple(name string, fn func(*client.Client, context.Context) (any, error)) *cobra.Command {
 	return &cobra.Command{Use: name, RunE: func(cmd *cobra.Command, args []string) error {

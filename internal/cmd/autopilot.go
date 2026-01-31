@@ -10,7 +10,7 @@ import (
 	"github.com/steipete/eightctl/internal/output"
 )
 
-var autopilotCmd = &cobra.Command{Use: "autopilot", Short: "Autopilot settings"}
+var autopilotCmd = &cobra.Command{Use: "autopilot", Short: "Autopilot settings", Hidden: true} // Verified broken 2026-01-29: Cannot GET
 
 var (
 	autopilotDetailsCmd = simpleAutopilot("details", func(cl *client.Client, ctx context.Context) (any, error) { return cl.Autopilot().Details(ctx) })

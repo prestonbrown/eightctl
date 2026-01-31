@@ -1,90 +1,65 @@
-# eightctl Specification (Dec 2025)
+# eightctl Project Specification
 
 ## Purpose
-Eight Sleep Pod power/control + data-export CLI, written in Go. Targets macOS/Linux users who want a dependable terminal tool (incl. daemon) for pod automations, metrics export, and feature toggles that the mobile app exposes but the vendor does not document.
 
-## Reality of the API
-- Eight Sleep does **not** publish a stable public API; we rely on the same cloud endpoints the mobile apps use.
-- Default OAuth client creds extracted from Android APK 7.39.17:
-  - `client_id`: `0894c7f33bb94800a03f1f4df13a4f38`
-  - `client_secret`: `f0954a3ed5763ba3d06834c73731a32f15f168f47d4f164751275def86db0c76`
-- Auth flow: password grant at `https://auth-api.8slp.net/v1/tokens`; fallback legacy `/login` session token.
-- Throttling: 429s observed; client retries with small delay and re-auths on 401.
+Eight Sleep Pod CLI for macOS/Linux users who want terminal-based pod control, scheduled automations, and metrics export using the same API as the mobile app.
 
-## Configuration & Auth
-- Config file: `~/.config/eightctl/config.yaml`; env prefix `EIGHTCTL_`; flags override env override file.
-- Fields: `email`, `password`, optional `user_id`, `client_id`, `client_secret`, `timezone`, `output`, `fields`, `verbose`.
-- Permissions check warns if config is more permissive than `0600`.
+## API Reality
 
-## CLI Surface (implemented)
-Core: `on`, `off`, `temp <level>`, `status`, `whoami`, `version`.
+Eight Sleep does not publish a public API. This project reverse-engineers endpoints from the mobile app. API changes can break functionality without warning.
 
-Schedules & daemon:
-- `schedule list|create|update|delete` (cloud temperature schedules)
-- `daemon` (YAML-based scheduler with PID guard, dry-run, timezone override, optional state sync)
+- **Current source**: Android APK v7.41.66 (January 2025)
+- **Auth**: OAuth2 password grant with embedded client credentials
+- **Rate limiting**: 429 responses with retry; re-auth on 401
 
-Alarms:
-- `alarm list|create|update|delete`
-- `alarm snooze|dismiss|dismiss-all|vibration-test`
+See [api-reference.md](./api-reference.md) for complete endpoint documentation.
 
-Temperature modes & events:
-- `tempmode nap on|off|extend|status`
-- `tempmode hotflash on|off|status`
-- `tempmode events --from --to` (temperature event history)
+## Architecture
 
-Audio:
-- `audio tracks|categories|state|play|pause|seek|volume|pair|next`
+```
+User → CLI (Cobra) → Client → Eight Sleep API
+                  ↓
+              Config (Viper)
+                  ↓
+            Token Cache (OS Keyring)
+```
 
-Adjustable base:
-- `base info|angle|presets|preset-run|vibration-test`
+**Key packages:**
+- `internal/cmd/` - Cobra commands
+- `internal/client/` - API client with domain-specific files
+- `internal/config/` - Viper configuration (YAML/env/flags)
+- `internal/daemon/` - YAML schedule parser and executor
+- `internal/output/` - Table/JSON/CSV formatting
+- `internal/tokencache/` - OS keyring persistence
 
-Device & maintenance:
-- `device info|peripherals|owner|warranty|online|priming-tasks|priming-schedule`
+## Current State
 
-Metrics & insights:
-- `metrics trends --from --to`
-- `metrics intervals --id`
-- `metrics summary`
-- `metrics aggregate`
-- `metrics insights`
-- `sleep day --date`, `sleep range --from --to`
-- `presence`
+Many API endpoints discovered from older APK versions no longer work. Commands for broken endpoints are hidden (not removed) pending re-implementation with correct endpoints.
 
-Autopilot:
-- `autopilot details|history|recap`
-- `autopilot set-level-suggestions --enabled`
-- `autopilot set-snore-mitigation --enabled`
+| Category | Status |
+|----------|--------|
+| Auth, status, on/off/temp | Working |
+| Device info, online | Working |
+| Sleep trends | Working |
+| Alarms, schedules | Hidden (broken) |
+| Audio, base, autopilot | Hidden (broken) |
+| Household, travel | Hidden (broken) |
 
-Travel:
-- `travel trips|create-trip|delete-trip`
-- `travel plans --trip`
-- `travel tasks --plan`
-- `travel airport-search --query`
-- `travel flight-status --flight`
+See [endpoint-audit.md](./endpoint-audit.md) for detailed status.
 
-Household:
-- `household summary|schedule|current-set|invitations`
+## Documentation
 
-Audio/temperature data helpers:
-- `tracks`, `feats` remain for backward compatibility.
+| Document | Purpose |
+|----------|---------|
+| [cli-reference.md](./cli-reference.md) | User-facing command documentation |
+| [api-reference.md](./api-reference.md) | Eight Sleep API endpoints |
+| [endpoint-audit.md](./endpoint-audit.md) | Broken endpoint tracking |
+| [development.md](./development.md) | Contributing and reverse engineering |
+| [testing.md](./testing.md) | Testing infrastructure and patterns |
 
-## Output & UX
-- Output formats: table (default), json, csv via `--output`; `--fields` to select columns.
-- Logs via charmbracelet/log; `--verbose` for debug; `--quiet` hides config notice.
+## Prior Work
 
-## Daemon Behavior
-- Reads YAML schedule (time, action on|off|temp, temperature with unit), minute tick, executes once per day, PID guard, SIGINT/SIGTERM graceful stop.
-- Optional state sync compares expected schedule state vs device and reconciles.
-
-## Testing & Quality Gates
-- `go test ./...` (fast compile checks) — run before handoff.
-- Formatting via `gofmt`; prefer `gofumpt`/`staticcheck` later.
-- Live checks: `eightctl status`, `metrics summary`, `tempmode nap status` with test creds to validate auth + userId resolution.
-
-## Prior Work (references)
-- Go CLI `clim8`: https://github.com/blacktop/clim8
-- MCP server (Node/TS): https://github.com/elizabethtrykin/8sleep-mcp
-- Python library `pyEight`: https://github.com/mezz64/pyEight
-- Home Assistant integrations: https://github.com/lukas-clarke/eight_sleep and https://github.com/grantnedwards/eight-sleep
-- Homebridge plugin: https://github.com/nfarina/homebridge-eightsleep
-- Additional notes on API stability: https://www.reddit.com/r/EightSleep/comments/15ybfrv/eight_sleep_removed_smart_home_capabilities/
+- [clim8](https://github.com/blacktop/clim8) - Go CLI
+- [pyEight](https://github.com/lukas-clarke/pyEight) - Python library (OAuth2 fork)
+- [eight_sleep](https://github.com/lukas-clarke/eight_sleep) - Home Assistant integration
+- [8sleep-mcp](https://github.com/elizabethtrykin/8sleep-mcp) - MCP server (Node/TS)

@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -18,6 +19,7 @@ import (
 
 const (
 	defaultBaseURL = "https://client-api.8slp.net/v1"
+	appAPIBaseURL  = "https://app-api.8slp.net/v1"
 	authURL        = "https://auth-api.8slp.net/v1/tokens"
 	// Extracted from the official Eight Sleep Android app v7.39.17 (public client creds)
 	defaultClientID     = "0894c7f33bb94800a03f1f4df13a4f38"
@@ -33,10 +35,11 @@ type Client struct {
 	ClientSecret string
 	DeviceID     string
 
-	HTTP     *http.Client
-	BaseURL  string
-	token    string
-	tokenExp time.Time
+	HTTP          *http.Client
+	BaseURL       string
+	AppAPIBaseURL string // For testing; defaults to appAPIBaseURL constant
+	token         string
+	tokenExp      time.Time
 }
 
 // New creates a Client.
@@ -117,11 +120,11 @@ func (c *Client) EnsureDeviceID(ctx context.Context) (string, error) {
 
 func (c *Client) authTokenEndpoint(ctx context.Context) error {
 	payload := map[string]string{
+		"client_id":     c.ClientID,
+		"client_secret": c.ClientSecret,
 		"grant_type":    "password",
 		"username":      c.Email,
 		"password":      c.Password,
-		"client_id":     "sleep-client",
-		"client_secret": "",
 	}
 	body, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, authURL, bytes.NewReader(body))
@@ -169,6 +172,10 @@ func (c *Client) authTokenEndpoint(ctx context.Context) error {
 }
 
 func (c *Client) authLegacyLogin(ctx context.Context) error {
+	return c.authLegacyLoginWithRetry(ctx, 0)
+}
+
+func (c *Client) authLegacyLoginWithRetry(ctx context.Context, attempt int) error {
 	payload := map[string]string{
 		"email":    c.Email,
 		"password": c.Password,
@@ -182,12 +189,23 @@ func (c *Client) authLegacyLogin(ctx context.Context) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("User-Agent", "okhttp/4.9.3")
-	req.Header.Set("Accept-Encoding", "gzip")
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		b, _ := io.ReadAll(resp.Body)
+		log.Debug("legacy login rate limited", "status", resp.Status, "body", string(b), "attempt", attempt)
+		if attempt < 3 {
+			// Exponential backoff: 2s, 4s, 8s
+			delay := time.Duration(2<<attempt) * time.Second
+			log.Debug("retrying legacy login after delay", "delay", delay)
+			time.Sleep(delay)
+			return c.authLegacyLoginWithRetry(ctx, attempt+1)
+		}
+		return fmt.Errorf("login rate limited after %d attempts: %s", attempt+1, string(b))
+	}
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		log.Debug("legacy login failed", "status", resp.Status, "headers", resp.Header, "body", string(b))
@@ -281,7 +299,7 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("User-Agent", "okhttp/4.9.3")
-	req.Header.Set("Accept-Encoding", "gzip")
+	// Note: Don't set Accept-Encoding manually; Go handles gzip automatically
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
@@ -299,6 +317,121 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 			return err
 		}
 		return c.do(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("api %s %s: %s", method, path, string(b))
+	}
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	return nil
+}
+
+// doV3 is like do but uses v3 API instead of v1.
+func (c *Client) doV3(ctx context.Context, method, path string, query url.Values, body any, out any) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	var rdr io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		rdr = bytes.NewReader(b)
+	}
+	// Replace v1 with v3 in the base URL
+	baseV3 := strings.Replace(c.BaseURL, "/v1", "/v3", 1)
+	u := baseV3 + path
+	if len(query) > 0 {
+		u += "?" + query.Encode()
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u, rdr)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("User-Agent", "okhttp/4.9.3")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(2 * time.Second)
+		return c.doV3(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.token = ""
+		_ = tokencache.Clear(c.Identity())
+		if err := c.ensureToken(ctx); err != nil {
+			return err
+		}
+		return c.doV3(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("api %s %s: %s", method, path, string(b))
+	}
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	return nil
+}
+
+// doAppAPI is like do but uses app-api.8slp.net instead of client-api.8slp.net.
+// Many endpoints (alarms, base, bedtime, away mode) have migrated to this API.
+func (c *Client) doAppAPI(ctx context.Context, method, path string, query url.Values, body any, out any) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	var rdr io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		rdr = bytes.NewReader(b)
+	}
+	baseURL := c.AppAPIBaseURL
+	if baseURL == "" {
+		baseURL = appAPIBaseURL
+	}
+	u := baseURL + path
+	if len(query) > 0 {
+		u += "?" + query.Encode()
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u, rdr)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("User-Agent", "okhttp/4.9.3")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(2 * time.Second)
+		return c.doAppAPI(ctx, method, path, query, body, out)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.token = ""
+		_ = tokencache.Clear(c.Identity())
+		if err := c.ensureToken(ctx); err != nil {
+			return err
+		}
+		return c.doAppAPI(ctx, method, path, query, body, out)
 	}
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
@@ -329,6 +462,26 @@ func (c *Client) setPower(ctx context.Context, on bool) error {
 	return c.do(ctx, http.MethodPost, path, nil, body, nil)
 }
 
+// TurnOnUser powers on the device for a specific user ID.
+func (c *Client) TurnOnUser(ctx context.Context, userID string) error {
+	return c.setUserPower(ctx, userID, true)
+}
+
+// TurnOffUser powers off the device for a specific user ID.
+func (c *Client) TurnOffUser(ctx context.Context, userID string) error {
+	return c.setUserPower(ctx, userID, false)
+}
+
+// setUserPower is the shared implementation for TurnOnUser and TurnOffUser.
+func (c *Client) setUserPower(ctx context.Context, userID string, on bool) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/users/%s/devices/power", userID)
+	body := map[string]bool{"on": on}
+	return c.do(ctx, http.MethodPost, path, nil, body, nil)
+}
+
 func (c *Client) Identity() tokencache.Identity {
 	return tokencache.Identity{
 		BaseURL:  c.BaseURL,
@@ -350,6 +503,29 @@ func (c *Client) SetTemperature(ctx context.Context, level int) error {
 	return c.do(ctx, http.MethodPut, path, nil, body, nil)
 }
 
+// SetTemperatureWithDuration sets target heating/cooling level for a specified duration.
+// Uses app-api with the timeBased field as discovered in pyEight.
+func (c *Client) SetTemperatureWithDuration(ctx context.Context, level int, durationMinutes int) error {
+	if err := c.requireUser(ctx); err != nil {
+		return err
+	}
+	if level < -100 || level > 100 {
+		return fmt.Errorf("level must be between -100 and 100")
+	}
+	if durationMinutes < 1 {
+		return fmt.Errorf("duration must be at least 1 minute")
+	}
+	path := fmt.Sprintf("/users/%s/temperature", c.UserID)
+	body := map[string]any{
+		"currentLevel": level,
+		"timeBased": map[string]any{
+			"level":           level,
+			"durationSeconds": durationMinutes * 60,
+		},
+	}
+	return c.doAppAPI(ctx, http.MethodPut, path, nil, body, nil)
+}
+
 // TempStatus represents current temperature state payload.
 type TempStatus struct {
 	CurrentLevel int `json:"currentLevel"`
@@ -369,6 +545,34 @@ func (c *Client) GetStatus(ctx context.Context) (*TempStatus, error) {
 		return nil, err
 	}
 	return &res, nil
+}
+
+// GetUserTemperature fetches temperature status for a specific user ID.
+// Unlike GetStatus which uses the authenticated user, this allows querying any user.
+func (c *Client) GetUserTemperature(ctx context.Context, userID string) (*TempStatus, error) {
+	if err := c.ensureToken(ctx); err != nil {
+		return nil, err
+	}
+	path := fmt.Sprintf("/users/%s/temperature", userID)
+	var res TempStatus
+	if err := c.do(ctx, http.MethodGet, path, nil, nil, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// SetUserTemperature sets target heating/cooling level for a specific user ID.
+// Unlike SetTemperature which uses the authenticated user, this allows controlling any user.
+func (c *Client) SetUserTemperature(ctx context.Context, userID string, level int) error {
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+	if level < -100 || level > 100 {
+		return fmt.Errorf("level must be between -100 and 100")
+	}
+	path := fmt.Sprintf("/users/%s/temperature", userID)
+	body := map[string]int{"currentLevel": level}
+	return c.do(ctx, http.MethodPut, path, nil, body, nil)
 }
 
 // SleepDay represents aggregated sleep metrics for a day.

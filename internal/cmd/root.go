@@ -66,7 +66,6 @@ func init() {
 	rootCmd.AddCommand(daemonCmd)
 	rootCmd.AddCommand(alarmCmd)
 	rootCmd.AddCommand(scheduleCmd)
-	rootCmd.AddCommand(presenceCmd)
 	rootCmd.AddCommand(tempModeCmd)
 	rootCmd.AddCommand(audioCmd)
 	rootCmd.AddCommand(baseCmd)

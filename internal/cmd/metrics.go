@@ -12,21 +12,23 @@ import (
 
 var metricsCmd = &cobra.Command{Use: "metrics", Short: "Sleep metrics and insights"}
 
-var metricsTrendsCmd = &cobra.Command{Use: "trends", RunE: func(cmd *cobra.Command, args []string) error {
+var metricsTrendsCmd = &cobra.Command{Use: "trends", Short: "Get sleep trends for date range", RunE: func(cmd *cobra.Command, args []string) error {
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
-	from := viper.GetString("from")
-	to := viper.GetString("to")
+	// Use cmd.Flags() directly to avoid viper global key conflicts
+	from, _ := cmd.Flags().GetString("from")
+	to, _ := cmd.Flags().GetString("to")
+	tz := viper.GetString("timezone")
 	cl := client.New(viper.GetString("email"), viper.GetString("password"), viper.GetString("user_id"), viper.GetString("client_id"), viper.GetString("client_secret"))
 	var out any
-	if err := cl.Metrics().Trends(context.Background(), from, to, &out); err != nil {
+	if err := cl.Metrics().Trends(context.Background(), from, to, tz, &out); err != nil {
 		return err
 	}
 	return output.Print(output.Format(viper.GetString("output")), []string{"trends"}, []map[string]any{{"trends": out}})
 }}
 
-var metricsIntervalsCmd = &cobra.Command{Use: "intervals", RunE: func(cmd *cobra.Command, args []string) error {
+var metricsIntervalsCmd = &cobra.Command{Use: "intervals", RunE: func(cmd *cobra.Command, args []string) error { // Verified working 2026-01-29
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -39,7 +41,7 @@ var metricsIntervalsCmd = &cobra.Command{Use: "intervals", RunE: func(cmd *cobra
 	return output.Print(output.Format(viper.GetString("output")), []string{"interval"}, []map[string]any{{"interval": out}})
 }}
 
-var metricsSummaryCmd = &cobra.Command{Use: "summary", RunE: func(cmd *cobra.Command, args []string) error {
+var metricsSummaryCmd = &cobra.Command{Use: "summary", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Verified broken 2026-01-29
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ var metricsSummaryCmd = &cobra.Command{Use: "summary", RunE: func(cmd *cobra.Com
 	return output.Print(output.Format(viper.GetString("output")), []string{"summary"}, []map[string]any{{"summary": out}})
 }}
 
-var metricsAggregateCmd = &cobra.Command{Use: "aggregate", RunE: func(cmd *cobra.Command, args []string) error {
+var metricsAggregateCmd = &cobra.Command{Use: "aggregate", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Verified broken 2026-01-29
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -63,7 +65,7 @@ var metricsAggregateCmd = &cobra.Command{Use: "aggregate", RunE: func(cmd *cobra
 	return output.Print(output.Format(viper.GetString("output")), []string{"aggregate"}, []map[string]any{{"aggregate": out}})
 }}
 
-var metricsInsightsCmd = &cobra.Command{Use: "insights", RunE: func(cmd *cobra.Command, args []string) error {
+var metricsInsightsCmd = &cobra.Command{Use: "insights", Hidden: true, RunE: func(cmd *cobra.Command, args []string) error { // Verified broken 2026-01-29
 	if err := requireAuthFields(); err != nil {
 		return err
 	}
@@ -78,8 +80,7 @@ var metricsInsightsCmd = &cobra.Command{Use: "insights", RunE: func(cmd *cobra.C
 func init() {
 	metricsTrendsCmd.Flags().String("from", "", "from date YYYY-MM-DD")
 	metricsTrendsCmd.Flags().String("to", "", "to date YYYY-MM-DD")
-	viper.BindPFlag("from", metricsTrendsCmd.Flags().Lookup("from"))
-	viper.BindPFlag("to", metricsTrendsCmd.Flags().Lookup("to"))
+	// Note: Not using viper.BindPFlag for from/to to avoid global key conflicts
 	metricsIntervalsCmd.Flags().String("id", "", "session id")
 	viper.BindPFlag("id", metricsIntervalsCmd.Flags().Lookup("id"))
 
