@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -287,11 +288,14 @@ func (a *Adapter) handleTemperatureCommand(sideName string) mqtt.MessageHandler 
 		defer cancel()
 
 		if err := a.HandleCommand(ctx, cmd); err != nil {
-			return // Log error in production
+			log.Printf("[mqtt] error handling temperature command for %s: %v", sideName, err)
+			return
 		}
 
 		// Publish updated state
-		_ = a.publishState(ctx)
+		if err := a.publishState(ctx); err != nil {
+			log.Printf("[mqtt] error publishing state after temperature command: %v", err)
+		}
 	}
 }
 
@@ -322,11 +326,14 @@ func (a *Adapter) handleModeCommand(sideName string) mqtt.MessageHandler {
 		defer cancel()
 
 		if err := a.HandleCommand(ctx, cmd); err != nil {
-			return // Log error in production
+			log.Printf("[mqtt] error handling mode command for %s: %v", sideName, err)
+			return
 		}
 
 		// Publish updated state
-		_ = a.publishState(ctx)
+		if err := a.publishState(ctx); err != nil {
+			log.Printf("[mqtt] error publishing state after mode command: %v", err)
+		}
 	}
 }
 
@@ -367,7 +374,9 @@ func (a *Adapter) pollLoop(ctx context.Context) {
 			a.stateManager.InvalidateCache()
 
 			pollCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			_ = a.publishState(pollCtx)
+			if err := a.publishState(pollCtx); err != nil {
+				log.Printf("[mqtt] error publishing state during poll: %v", err)
+			}
 			cancel()
 		}
 	}

@@ -147,6 +147,8 @@ func (m *Manager) fetchUserState(ctx context.Context, userID string, side model.
 }
 
 // notifyStateChange notifies observers of state and presence changes.
+// Note: Observers receive pointers to state objects. These objects should be
+// treated as read-only. Modifying them may cause data races with concurrent readers.
 func (m *Manager) notifyStateChange(observers []Observer, old, new *model.DeviceState) {
 	change := StateChange{Old: old, New: new}
 	for _, o := range observers {

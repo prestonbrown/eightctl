@@ -266,7 +266,10 @@ Turn on a side.
 curl -X PUT http://localhost:8080/left/on
 ```
 
-**Response:** `204 No Content`
+**Response:** `200 OK`
+```json
+{"status": "ok"}
+```
 
 ### PUT /{side}/off
 
@@ -277,7 +280,10 @@ Turn off a side.
 curl -X PUT http://localhost:8080/left/off
 ```
 
-**Response:** `204 No Content`
+**Response:** `200 OK`
+```json
+{"status": "ok"}
+```
 
 ### PUT /{side}/temperature?level=N
 
@@ -288,7 +294,10 @@ Set the temperature level for a side.
 curl -X PUT "http://localhost:8080/left/temperature?level=-20"
 ```
 
-**Response:** `204 No Content`
+**Response:** `200 OK`
+```json
+{"status": "ok"}
+```
 
 **Parameters:**
 - `level` (required): Integer from -100 to 100
